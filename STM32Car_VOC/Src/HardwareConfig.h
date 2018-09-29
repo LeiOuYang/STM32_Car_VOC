@@ -4,6 +4,7 @@
 
 	#include "stm32f1xx_hal.h"
 	#include "ButtonDriver.h"
+	#include "UsartDriver.h"
 	
 	/* led io conifg */
 	
@@ -17,7 +18,7 @@
 	
 	#define set_status_led() ledAction(status_led, GPIO_PIN_RESET)
 	#define reset_status_led() ledAction(status_led, GPIO_PIN_SET)	
-	
+		
 	/* end led define */
 	
 	/* RGB1 */

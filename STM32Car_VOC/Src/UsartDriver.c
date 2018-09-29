@@ -1,10 +1,10 @@
 
 #include "UsartDriver.h"
 
-#define USART1_REC_MAX    1024
-#define USART1_SEND_MAX   512
-#define USART2_REC_MAX    1
-#define USART2_SEND_MAX   1
+#define USART1_REC_MAX    256
+#define USART1_SEND_MAX   256
+#define USART2_REC_MAX    256
+#define USART2_SEND_MAX   256
 #define USART3_REC_MAX    1
 #define USART3_SEND_MAX   1
 #define RTOS_ENABLE 1
@@ -279,7 +279,7 @@ void usartClearTxBuff(unsigned char id)
 //  {
 //    if(huart->Init.WordLength == UART_WORDLENGTH_9B)
 //    {
-//      //tmp = (uint16_t*) huart->pRxBuffPtr;
+//      tmp = (uint16_t*) huart->pRxBuffPtr;
 //      if(huart->Init.Parity == UART_PARITY_NONE)
 //      {
 //        //*tmp = (uint16_t)(huart->Instance->DR & (uint16_t)0x01FF);
@@ -295,12 +295,42 @@ void usartClearTxBuff(unsigned char id)
 //    {
 //      if(huart->Init.Parity == UART_PARITY_NONE)
 //      {
-//				insertCharLoopQueue( getUsartRecLoopQueue(USART3_ID), huart->Instance->DR & (uint8_t)0x00FF);
+//        //*huart->pRxBuffPtr++ = (uint8_t)(huart->Instance->DR & (uint8_t)0x00FF);
+//				if(USART1==huart->Instance)
+//					insertCharLoopQueue( getUsartRecLoopQueue(USART1_ID), huart->Instance->DR & (uint8_t)0x00FF);
+//				else if((USART2==huart->Instance))
+//					insertCharLoopQueue( getUsartRecLoopQueue(USART2_ID), huart->Instance->DR & (uint8_t)0x00FF);
+//				else if((USART3==huart->Instance))
+//					insertCharLoopQueue( getUsartRecLoopQueue(USART3_ID), huart->Instance->DR & (uint8_t)0x00FF);
 //      }
 //      else
 //      {
-//				insertCharLoopQueue( getUsartRecLoopQueue(USART3_ID), huart->Instance->DR & (uint8_t)0x007F);
+//        //*huart->pRxBuffPtr++ = (uint8_t)(huart->Instance->DR & (uint8_t)0x007F);
+//				if(USART1==huart->Instance)
+//					insertCharLoopQueue( getUsartRecLoopQueue(USART1_ID), huart->Instance->DR & (uint8_t)0x007F);
+//				else if(USART2==huart->Instance)
+//					insertCharLoopQueue( getUsartRecLoopQueue(USART2_ID), huart->Instance->DR & (uint8_t)0x007F);
+//				else if(USART3==huart->Instance)
+//					insertCharLoopQueue( getUsartRecLoopQueue(USART3_ID), huart->Instance->DR & (uint8_t)0x007F);
 //      }
+//    }
+
+//    if(--huart->RxXferCount == 0U)
+//    {
+//      /* Disable the IRDA Data Register not empty Interrupt */
+//      __HAL_UART_DISABLE_IT(huart, UART_IT_RXNE);
+
+//      /* Disable the UART Parity Error Interrupt */
+//      __HAL_UART_DISABLE_IT(huart, UART_IT_PE);
+//        /* Disable the UART Error Interrupt: (Frame error, noise error, overrun error) */
+//        __HAL_UART_DISABLE_IT(huart, UART_IT_ERR);
+
+//      /* Rx process is completed, restore huart->RxState to Ready */
+//      huart->RxState = HAL_UART_STATE_READY;
+
+//      HAL_UART_RxCpltCallback(huart);
+
+//      return HAL_OK;
 //    }
 //    return HAL_OK;
 //  }
@@ -309,4 +339,3 @@ void usartClearTxBuff(unsigned char id)
 //    return HAL_BUSY;
 //  }
 //}
-

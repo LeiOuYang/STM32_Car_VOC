@@ -16,13 +16,27 @@
 	#define OLED_PAGE1_UPDATE_VALID  		(1<<1)
 	#define OLED_PAGE1_UPDATE_INVALID		(~(1<<1))	
 	
+	static xSemaphoreHandle mutex_usart1_tx;
+	static xSemaphoreHandle mutex_usart2_tx;
+	
 	
 	void app_run(void);   /* 所有任务初始化 */
 	
+	static void init_system(void);
+	
 	/* 任务函数 */
-	void feed_dog_task(void const* arg);
+	static void feed_dog_task(void const* arg);
+	static void led_blink_task(void const* arg);
+	static void rgb_blink_task(void const* arg);
+	static void beep_task(void const* arg);
+	static void usart1_send_task(void const* arg);
+	static void usart1_receive_task(void const* arg);
+	static void usart2_send_task(void const* arg);
+	static void usart2_receive_task(void const* arg);
 	
 	
 	extern IWDG_HandleTypeDef hiwdg;
+	extern UART_HandleTypeDef huart1;
+	extern UART_HandleTypeDef huart2;
 
 #endif

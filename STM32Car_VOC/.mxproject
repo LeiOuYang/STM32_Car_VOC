@@ -1,7 +1,7 @@
 [PreviousGenFiles]
-HeaderPath=C:/Users/Awesome/Desktop/STM32Car_VOC/Inc
+HeaderPath=D:/GithubPro/STM32_Car_VOC/STM32Car_VOC/Inc
 HeaderFiles=FreeRTOSConfig.h;stm32f1xx_it.h;stm32f1xx_hal_conf.h;main.h;
-SourcePath=C:/Users/Awesome/Desktop/STM32Car_VOC/Src
+SourcePath=D:/GithubPro/STM32_Car_VOC/STM32Car_VOC/Src
 SourceFiles=freertos.c;stm32f1xx_it.c;stm32f1xx_hal_msp.c;main.c;
 
 [PreviousLibFiles]
