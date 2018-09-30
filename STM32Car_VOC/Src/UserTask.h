@@ -29,6 +29,7 @@
 	static void led_blink_task(void const* arg);
 	static void rgb_blink_task(void const* arg);
 	static void beep_task(void const* arg);
+	static void initUsartIT(UART_HandleTypeDef *huart);
 	static void usart1_send_task(void const* arg);
 	static void usart1_receive_task(void const* arg);
 	static void usart2_send_task(void const* arg);

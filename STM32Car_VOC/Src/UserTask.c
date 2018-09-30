@@ -139,7 +139,7 @@ static void usart1_receive_task(void const* arg)
 			read(USART1_ID, &buff[0], data_len);
 			
 			/* 解析数据 */
-			write(USART1_ID, &buff[0], data_len);
+			write(USART2_ID, &buff[0], data_len);
 		}
 	}
 }
@@ -228,7 +228,7 @@ static void usart2_receive_task(void const* arg)
 			read(USART2_ID, &buff[0], data_len);
 			
 			/* 解析数据 */
-			
+			//write(USART2_ID, &buff[0], data_len);
 		}
 	}
 }
@@ -242,7 +242,34 @@ static void init_system(void)
 	mutex_usart1_tx = xSemaphoreCreateMutex();
 	mutex_usart2_tx = xSemaphoreCreateMutex();
 	
+	initUsartIT(&huart1);
+	initUsartIT(&huart2);
+	
 	write(USART1_ID, "USART1 ENBALE\n", sizeof("USART1 ENBALE\n")/sizeof(char));
 	write(USART2_ID, "USART2 ENBALE\n", sizeof("USART2 ENBALE\n")/sizeof(char));
+}
+/* function code end */
+
+/* 初始化串口接收中断 */
+static void initUsartIT(UART_HandleTypeDef *huart)
+{
+	if(huart==0) return;
+
+	huart->ErrorCode = HAL_UART_ERROR_NONE;
+	huart->RxState = HAL_UART_STATE_BUSY_RX;
+
+	/* Process Unlocked */
+	__HAL_UNLOCK(huart);
+
+	/* Enable the UART Parity Error Interrupt */
+	__HAL_UART_ENABLE_IT(huart, UART_IT_PE);
+
+	/* Enable the UART Error Interrupt: (Frame error, noise error, overrun error) */
+	__HAL_UART_ENABLE_IT(huart, UART_IT_ERR);
+
+	/* Enable the UART Data Register not empty Interrupt */
+	__HAL_UART_ENABLE_IT(huart, UART_IT_RXNE);
+	
+	return;
 }
 /* function code end */
