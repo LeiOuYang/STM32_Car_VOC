@@ -262,7 +262,6 @@ void OLED_Clear_Area(unsigned char sx, unsigned char sy, unsigned char ex, unsig
 void OLED_set_area(unsigned char sx, unsigned char sy, unsigned char ex, unsigned char ey)  
 {
 	unsigned char x,y;
-	unsigned char i = 0;
 	
 	if(ex-sx<0||ey-sy<0) return;	
 	

@@ -41,5 +41,6 @@
 	extern IWDG_HandleTypeDef hiwdg;
 	extern UART_HandleTypeDef huart1;
 	extern UART_HandleTypeDef huart2;
+	extern TIM_HandleTypeDef htim1;
 
 #endif

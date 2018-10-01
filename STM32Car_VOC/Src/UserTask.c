@@ -1,3 +1,4 @@
+
 #include "UserTask.h"
 
 //static osThreadId feed_dog_task_handle;
@@ -43,6 +44,20 @@ void app_run(void)
 	osThreadCreate(osThread(UART2TXTask), NULL);
 	
 }
+
+/* 温湿度数据处理 */
+static void dht11_process_task(void* arg)
+{
+	osDelay(1500);  /* 延时1.5S等待模块稳定 */
+	HAL_TIM_Base_Start_IT(&htim1); /* 开启定时处理任务，1us进入定时器中断*/
+	
+	while(1)
+	{
+		osDelay(5500);  /* 没5.5S读取一次温湿度数据 */
+		
+	}	
+}
+/* function code end */
 
 
 /* 看门狗喂狗任务 */
@@ -250,8 +265,6 @@ static void usart2_receive_task(void const* arg)
 /* 更新OLED屏幕显示 */
 static void update_oled_task(void const* arg)
 {	
-	unsigned char old_page = 0; 
-	unsigned char count = 0;
 	char buff[10];
 		
 	OLED_Init();
@@ -278,7 +291,7 @@ static void update_oled_task(void const* arg)
 			display_string_Font16_16(93-strlen(buff)*16, 0, buff);
 		}else
 		{
-			OLED_ShowString(80, 1, "--", 16);
+			OLED_ShowString(80, 0, "--", 16);
 		}
 	}
 }
