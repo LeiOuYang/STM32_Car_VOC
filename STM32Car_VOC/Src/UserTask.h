@@ -19,6 +19,7 @@
 	static xSemaphoreHandle mutex_usart1_tx;
 	static xSemaphoreHandle mutex_usart2_tx;
 	
+	static AirSensor* p_air_sensor;	
 	
 	void app_run(void);   /* 所有任务初始化 */
 	
@@ -34,6 +35,7 @@
 	static void usart1_receive_task(void const* arg);
 	static void usart2_send_task(void const* arg);
 	static void usart2_receive_task(void const* arg);
+	static void update_oled_task(void const* arg);
 	
 	
 	extern IWDG_HandleTypeDef hiwdg;

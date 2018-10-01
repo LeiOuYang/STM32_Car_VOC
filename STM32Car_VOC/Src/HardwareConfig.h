@@ -5,6 +5,7 @@
 	#include "stm32f1xx_hal.h"
 	#include "ButtonDriver.h"
 	#include "UsartDriver.h"
+	#include "KQM28xx.h"
 	
 	/* led io conifg */
 	

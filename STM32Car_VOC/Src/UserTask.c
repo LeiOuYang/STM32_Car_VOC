@@ -19,6 +19,10 @@ void app_run(void)
 	/* RGB闪烁任务 */
 	osThreadDef(RGBBlinkThread, rgb_blink_task, osPriorityIdle, 0, 128);
 	osThreadCreate(osThread(RGBBlinkThread), NULL);
+	
+	/* 开启更新显示OLED显示屏幕 */
+	osThreadDef(OledTask, update_oled_task, osPriorityIdle, 0, 128);
+	osThreadCreate(osThread(OledTask), NULL);	
 
 	/* 蜂鸣器鸣叫任务 */
 //	osThreadDef(BeepBlinkThread, beep_task, osPriorityIdle, 0, 128);
@@ -128,6 +132,7 @@ static void usart1_receive_task(void const* arg)
 {
 	unsigned int data_len = 0;
 	char buff[128];
+	unsigned int i = 0;
 	
 	while(1)
 	{
@@ -139,7 +144,15 @@ static void usart1_receive_task(void const* arg)
 			read(USART1_ID, &buff[0], data_len);
 			
 			/* 解析数据 */
-			write(USART2_ID, &buff[0], data_len);
+			for(i=0; i<data_len; ++i)
+			{
+				p_air_sensor->update(buff[i]);
+				if(p_air_sensor->health && !p_air_sensor->error)
+				{
+					//write(USART2_ID, "OK\t", 2);
+					write(USART2_ID, &buff[0], data_len);
+				}
+			}
 		}
 	}
 }
@@ -234,6 +247,44 @@ static void usart2_receive_task(void const* arg)
 }
 /* function code end */
 
+/* 更新OLED屏幕显示 */
+static void update_oled_task(void const* arg)
+{	
+	unsigned char old_page = 0; 
+	unsigned char count = 0;
+	char buff[10];
+		
+	OLED_Init();
+	OLED_Clear();	
+	display_string_Font8_16(96, 0, "ppm");
+	display_fuhao_Font8_16(96, 3, 1);
+	display_string_Font8_16(96, 6, "RH");
+		
+	while(1)
+	{
+		osDelay(1500);
+		
+		/*清楚PPM显示区域*/
+		OLED_Clear_Area(61, 0, 96, 0);
+		OLED_Clear_Area(61, 1, 96, 1);
+		
+		if(p_air_sensor->init)
+		{
+			float_to_string(p_air_sensor->air_ppm, (char*)buff, 4, 0);
+			if(strlen(buff)==1)
+			{
+				display_string_Font16_16(61, 0, "0");
+			}
+			display_string_Font16_16(93-strlen(buff)*16, 0, buff);
+		}else
+		{
+			OLED_ShowString(80, 1, "--", 16);
+		}
+	}
+}
+/* function code end */
+
+
 /* 初始化系统函数 */
 static void init_system(void)
 {
@@ -242,11 +293,15 @@ static void init_system(void)
 	mutex_usart1_tx = xSemaphoreCreateMutex();
 	mutex_usart2_tx = xSemaphoreCreateMutex();
 	
+	p_air_sensor = get_air_sensor();
+	
 	initUsartIT(&huart1);
 	initUsartIT(&huart2);
 	
 	write(USART1_ID, "USART1 ENBALE\n", sizeof("USART1 ENBALE\n")/sizeof(char));
 	write(USART2_ID, "USART2 ENBALE\n", sizeof("USART2 ENBALE\n")/sizeof(char));
+	
+	
 }
 /* function code end */
 
