@@ -44,9 +44,17 @@ typedef struct dht11
 	unsigned char data[5];  
 	unsigned char data_count;
 	unsigned char start_falg;
+	unsigned char data_start_flag;
 	unsigned char status;
 	unsigned char valid;
 }DHT11;
+
+void DHT11_io_in_config(void);
+void DHT11_io_out_config(void);
+unsigned char DHT11_start(DHT11* dht);
+void DHT11_data_process(DHT11* dht);
+DHT11* get_dht11(void);
+extern void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 
 #endif
 

@@ -37,7 +37,9 @@
 #include "cmsis_os.h"
 
 /* USER CODE BEGIN 0 */
-
+#include "ButtonDriver.h"
+#include "HardwareConfig.h"
+extern xQueueHandle button_event_queue;
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
@@ -177,11 +179,17 @@ void SysTick_Handler(void)
 void EXTI0_IRQHandler(void)
 {
   /* USER CODE BEGIN EXTI0_IRQn 0 */
-
+	Button *bt;
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
   /* USER CODE END EXTI0_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
   /* USER CODE BEGIN EXTI0_IRQn 1 */
-
+	if(BUTTON_STATUS_NONE!=button_exti_callback(BUTTON_ID_1))
+	{
+		bt = get_button_by_id(BUTTON_ID_1);
+		xQueueSendToBackFromISR( button_event_queue, &bt, &xHigherPriorityTaskWoken );
+	}
+	portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
   /* USER CODE END EXTI0_IRQn 1 */
 }
 
@@ -191,11 +199,17 @@ void EXTI0_IRQHandler(void)
 void EXTI1_IRQHandler(void)
 {
   /* USER CODE BEGIN EXTI1_IRQn 0 */
-
+	Button *bt;
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
   /* USER CODE END EXTI1_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_1);
   /* USER CODE BEGIN EXTI1_IRQn 1 */
-
+	if(BUTTON_STATUS_NONE!=button_exti_callback(BUTTON_ID_2))
+	{
+		bt = get_button_by_id(BUTTON_ID_2);
+		xQueueSendToBackFromISR( button_event_queue, &bt, &xHigherPriorityTaskWoken );
+	}
+	portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
   /* USER CODE END EXTI1_IRQn 1 */
 }
 

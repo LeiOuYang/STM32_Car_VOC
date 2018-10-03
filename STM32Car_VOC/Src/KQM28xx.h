@@ -32,6 +32,15 @@
 
 #define FRAME_START 0x5F
 
+typedef enum TVOC_PPM_STATUS
+{
+	TVOC_PPM_00, /* 等级0  <1.5ppm */
+	TVOC_PPM_01, /* 等级1  1.5~5.5ppm */
+	TVOC_PPM_02, /* 等级2  5.5~10ppm */
+	TVOC_PPM_03, /* 等级3  >10ppm */
+	TVOC_PPM_DANGER,
+}TVOC_PPM_STATUS;
+
 /* 数据解析状态标志 */
 typedef enum air_sensor_flag
 {
@@ -45,6 +54,7 @@ typedef enum air_sensor_flag
 typedef struct air_sensor
 {
 	void (*update)(char );
+	TVOC_PPM_STATUS (*convert_level)(unsigned int);
 	float air_ppm;
 	unsigned int check_sum;
 	AirSensorFlag parse_flag;
@@ -55,6 +65,7 @@ typedef struct air_sensor
 
 void update(char data);
 AirSensor* get_air_sensor(void);
+TVOC_PPM_STATUS convert_level(unsigned int data);
 
 #endif
 

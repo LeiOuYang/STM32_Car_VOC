@@ -6,6 +6,9 @@
 //static osThreadId rgb_blink_task_handle;
 //static osThreadId beep_task_handle;
 
+static system_flag sys_flag = { 0,0,0,0,1,1 };
+xQueueHandle button_event_queue;
+
 void app_run(void)
 {
 	init_system();
@@ -26,8 +29,8 @@ void app_run(void)
 	osThreadCreate(osThread(OledTask), NULL);	
 
 	/* 蜂鸣器鸣叫任务 */
-//	osThreadDef(BeepBlinkThread, beep_task, osPriorityIdle, 0, 128);
-//	beep_task_handle = osThreadCreate(osThread(BeepBlinkThread), NULL);
+	osThreadDef(BeepBlinkThread, beep_task, osPriorityIdle, 0, 128);
+	osThreadCreate(osThread(BeepBlinkThread), NULL);
 	
 	/* 串口1接收数据处理任务 */
 	osThreadDef(UART1RXTask, usart1_receive_task, osPriorityLow, 0, 256);
@@ -43,6 +46,14 @@ void app_run(void)
 	osThreadDef(UART2TXTask, usart2_send_task, osPriorityBelowNormal, 0, 256);
 	osThreadCreate(osThread(UART2TXTask), NULL);
 	
+	/* DHT11数据处理任务 */
+//	osThreadDef(DHT11Task, dht11_process_task, osPriorityLow, 0, 128);
+//	osThreadCreate(osThread(DHT11Task), NULL);
+	
+	/* 按键队列处理任务 */
+	osThreadDef(ButtonTask, button_event_task, osPriorityRealtime, 0, 128);
+	osThreadCreate(osThread(ButtonTask), NULL);	
+	
 }
 
 /* 温湿度数据处理 */
@@ -53,8 +64,12 @@ static void dht11_process_task(void* arg)
 	
 	while(1)
 	{
-		osDelay(5500);  /* 没5.5S读取一次温湿度数据 */
+		if(!p_dht11->valid)
+		{
+			DHT11_start(p_dht11);
+		}
 		
+		osDelay(5500);  /* 没5.5S读取一次温湿度数据 */
 	}	
 }
 /* function code end */
@@ -87,6 +102,7 @@ static void led_blink_task(void const* arg)
 /* RGB灯显示/关闭任务 */
 static void rgb_blink_task(void const* arg)
 {
+	unsigned int step = 0;
 	unsigned int count = 0;
 	
 	RGB1_Close();
@@ -94,37 +110,69 @@ static void rgb_blink_task(void const* arg)
 	
 	while(1)
 	{
-		osDelay(500);  /* 10Hz */
+		osDelay(20);  /* 50hz */
 		
-		/*
-		switch(count++%5)
+		if(!sys_flag.open_rgb)
 		{
-			case 0:
-				RGB1_Red();
-				RGB2_Red();
-				break;
-			case 1:
-				RGB1_Green();
-				RGB2_Green();
-				break;
-			case 2:
-				RGB1_Blue();
-				RGB2_Blue();
-				break;
-			case 3:
-				RGB1_Yellow();
-				RGB2_Yellow();
-				break;
-			case 4:
-				RGB1_Purple();
-				RGB2_Purple();
-				break;			
-			default:
-				RGB1_Close();
-				RGB2_Close();
-				break;
+			RGB1_Close();
+			RGB2_Close();
+			continue;
 		}
-		*/
+		
+		if(p_air_sensor->init && p_air_sensor->health)
+		{
+			switch(sys_flag.tvoc_level)
+			{
+				case TVOC_PPM_00:  /* 等级0  <1.5ppm */
+					RGB1_Green();
+					RGB2_Green();
+					break;
+				case TVOC_PPM_01: /* 等级1  1.5~5.5ppm */
+					 RGB1_Blue();
+					 RGB2_Blue();
+					break;
+				case TVOC_PPM_02:  /* 等级2  5.5~10ppm */
+					RGB1_Purple();
+					RGB2_Purple();				
+					break;
+				case TVOC_PPM_03:  /* 等级3  >10ppm */
+					RGB1_Yellow();
+					RGB2_Yellow();
+					break;
+				case TVOC_PPM_DANGER:
+	//				RGB1_Red();
+	//				RGB2_Red();
+					break;
+				default:
+					RGB1_Close();
+					RGB2_Close();
+					break;
+			}
+			
+			step++;
+			switch(step)
+			{
+					case 0:
+					case 2:
+						if(TVOC_PPM_DANGER==sys_flag.tvoc_level)
+						{
+							RGB1_Red();
+							RGB2_Red();
+						}
+						break;
+					case 1:
+					case 3:
+						if(TVOC_PPM_DANGER==sys_flag.tvoc_level)
+						{
+							RGB1_Close();
+							RGB2_Close();
+						}				
+						break;				
+					default:
+						step = 0;
+						break;
+			}		
+		}
 	}
 }
 /* function code end */
@@ -134,10 +182,20 @@ static void beep_task(void const* arg)
 {
 	while(1)
 	{	
-		set_beep();
-		osDelay(500);
-		reset_beep();
-		osDelay(2000);
+		osDelay(100);
+		
+		if(!sys_flag.open_beep)
+		{
+			reset_beep();
+			continue;
+		}
+		if(sys_flag.tvoc_level>=TVOC_PPM_03 && p_air_sensor->health)
+		{
+			set_beep();
+			osDelay(500);
+			reset_beep();
+			osDelay(2000);
+		}
 	}
 }
 /* function code end */
@@ -164,7 +222,10 @@ static void usart1_receive_task(void const* arg)
 				p_air_sensor->update(buff[i]);
 				if(p_air_sensor->health && !p_air_sensor->error)
 				{
-					//write(USART2_ID, "OK\t", 2);
+					/* 换算等级 */
+					sys_flag.tvoc_level = p_air_sensor->convert_level((unsigned int)(p_air_sensor->air_ppm*10));
+					sys_flag.tvoc_ppm = (unsigned char)p_air_sensor->air_ppm;
+					
 					write(USART2_ID, &buff[0], data_len);
 				}
 			}
@@ -269,34 +330,33 @@ static void update_oled_task(void const* arg)
 		
 	OLED_Init();
 	OLED_Clear();	
-	display_string_Font8_16(96, 0, "ppm");
-	display_fuhao_Font8_16(96, 3, 1);
-	display_string_Font8_16(96, 6, "RH");
+	display_string_Font8_16(48, 0, "ppm");
+	display_fuhao_Font8_16(48, 3, 1);
+	display_string_Font8_16(48, 6, "RH");
 		
 	while(1)
 	{
 		osDelay(1500);
 		
 		/*清楚PPM显示区域*/
-		OLED_Clear_Area(61, 0, 96, 0);
-		OLED_Clear_Area(61, 1, 96, 1);
+		OLED_Clear_Area(0, 0, 48, 0);
+		OLED_Clear_Area(0, 1, 48, 1);
 		
 		if(p_air_sensor->init)
 		{
 			float_to_string(p_air_sensor->air_ppm, (char*)buff, 4, 0);
 			if(strlen(buff)==1)
 			{
-				display_string_Font16_16(61, 0, "0");
+				display_string_Font16_16(16, 0, "0");
 			}
-			display_string_Font16_16(93-strlen(buff)*16, 0, buff);
+			display_string_Font16_16(48-strlen(buff)*16, 0, buff);
 		}else
 		{
-			OLED_ShowString(80, 0, "--", 16);
+			OLED_ShowString(16, 0, "--", 16);
 		}
 	}
 }
 /* function code end */
-
 
 /* 初始化系统函数 */
 static void init_system(void)
@@ -305,8 +365,10 @@ static void init_system(void)
 	initUsartBuff(USART1_ID);
 	mutex_usart1_tx = xSemaphoreCreateMutex();
 	mutex_usart2_tx = xSemaphoreCreateMutex();
+	button_event_queue = xQueueCreate( 10, sizeof( Button* ));
 	
 	p_air_sensor = get_air_sensor();
+	p_dht11 = get_dht11();
 	
 	initUsartIT(&huart1);
 	initUsartIT(&huart2);
@@ -317,6 +379,90 @@ static void init_system(void)
 	
 }
 /* function code end */
+
+/* 按键处理代码 */
+void button_event_task(void const* arg)
+{
+	init_system_button();
+	Button* bt = 0;	
+	
+	while(1)
+	{
+		if( pdPASS==xQueueReceive( button_event_queue, &bt, 30 ) )
+		{
+			ButtonId id = (ButtonId)bt->id;
+			
+			if(BUTTON_STATUS_DOWN_START==bt->status) /* 识别到第一次按下，有可能是噪声 */
+			{
+				osDelay(10);    /* 消除抖动 */
+				if(GPIO_PIN_RESET==read_button_pin_satus(id)) /* 确定按下 */
+				{
+					bt->status = BUTTON_STATUS_DOWN_ENTER;
+					bt->clicked = 1;
+				}else
+				{
+					bt->status = BUTTON_STATUS_NONE;
+					bt->down_time = 0;
+				}
+			}
+			else if(BUTTON_STATUS_UP_START==bt->status) /* 按键回弹 */
+			{
+				osDelay(10);    /* 消除抖动 */
+				if(GPIO_PIN_SET==read_button_pin_satus(id)) 
+				{
+					bt->status = BUTTON_STATUS_UP_ENTER;
+					bt->release = 1;
+					
+					/* 处理按键回弹事件 */
+					if(bt->down_time*30<500 && id==1)
+					{
+						sys_flag.open_beep = !sys_flag.open_beep;
+					}
+					
+					if(bt->down_time*30<500 && id==0)
+					{
+						sys_flag.open_rgb = !sys_flag.open_rgb;
+					}
+					/* end */
+					bt->down_time = 0;
+					bt->status = BUTTON_STATUS_NONE;
+					bt->release = 0;
+				}else
+				{
+					bt->status = BUTTON_STATUS_NONE;
+					bt->down_time = 0;
+				}
+			}
+		}
+		else
+		{
+			Button *b = 0;
+			unsigned char i = 0;
+			for( ; i<BUTTON_MAX_NUM; ++i)
+			{
+				b = get_button_by_id((ButtonId)i);
+				if(b->status==BUTTON_STATUS_DOWN_ENTER)
+				{
+					++b->down_time;
+					if(b->down_time*30>=3000) /* 按钮一直按下3秒 */
+					{
+						/* 处理事件 */
+						if(b->down_time*30<3500)
+						{
+						}else if(b->down_time*30>5000)
+						{
+						}else if(b->down_time*30<3500)
+						{
+						}
+					}else if(b->down_time*30>=5000)
+					{
+					}
+				}
+			}
+		}
+	}
+}
+/* function code end */ 
 
 /* 初始化串口接收中断 */
 static void initUsartIT(UART_HandleTypeDef *huart)

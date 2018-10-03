@@ -49,9 +49,23 @@ void update(char data)
 	}
 }
 
+TVOC_PPM_STATUS convert_level(unsigned int data)
+{
+	if(data>=0 && data<=15)
+		return TVOC_PPM_00;
+	else if(data>15 && data<=55)
+		return TVOC_PPM_01;
+	else if(data>55 && data<=100)
+		return TVOC_PPM_02;
+	else if(data>100 && data<=150)
+		return TVOC_PPM_03;
+	else
+		return TVOC_PPM_DANGER;		
+}
+
 AirSensor* get_air_sensor(void)
 {
-	static AirSensor air_sensor = { update, 0.0, 0, AIR_SENSOR_NONE,0, 0 };
+	static AirSensor air_sensor = { update, convert_level, 0.0, 0, AIR_SENSOR_NONE,0, 0 };
 	
 	return &air_sensor;
 }

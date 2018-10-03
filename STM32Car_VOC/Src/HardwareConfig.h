@@ -6,6 +6,7 @@
 	#include "ButtonDriver.h"
 	#include "UsartDriver.h"
 	#include "KQM28xx.h"
+	#include "DHT11.h"
 	
 	/* led io conifg */
 	
