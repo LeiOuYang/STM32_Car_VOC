@@ -6,8 +6,9 @@
 //static osThreadId rgb_blink_task_handle;
 //static osThreadId beep_task_handle;
 
-static system_flag sys_flag = { 0,0,0,0,1,1 };
+static system_flag sys_flag = { 0,0,0,0,0,1,1,0,0,0};
 xQueueHandle button_event_queue;
+extern const unsigned char chinese16_16[][32];
 
 void app_run(void)
 {
@@ -112,14 +113,49 @@ static void rgb_blink_task(void const* arg)
 	{
 		osDelay(20);  /* 50hz */
 		
-		if(!sys_flag.open_rgb)
+		if(!sys_flag.open_rgb && 0==sys_flag.rgb_sw)
 		{
 			RGB1_Close();
 			RGB2_Close();
 			continue;
 		}
 		
-		if(p_air_sensor->init && p_air_sensor->health)
+		if(sys_flag.rgb_sw)
+		{
+			switch(sys_flag.rgb_list)
+			{
+				case 0:
+					RGB1_Red();
+					RGB2_Red();
+					break;
+				case 1:
+					RGB1_Green();
+					RGB2_Green();
+					break;
+				case 2:
+					RGB1_Blue();
+					RGB2_Blue();
+					break;
+				case 3:
+					RGB1_Yellow();
+					RGB2_Yellow();
+					break;
+				case 4:
+					RGB1_Purple();
+					RGB2_Purple();
+					break;
+				case 5:
+					RGB1_Close();
+					RGB2_Close();
+					break;
+				default:
+					RGB1_Close();
+					RGB2_Close();
+					break;
+			}
+		}
+		
+		if(p_air_sensor->init && p_air_sensor->health && 0==sys_flag.rgb_sw)
 		{
 			switch(sys_flag.tvoc_level)
 			{
@@ -140,8 +176,8 @@ static void rgb_blink_task(void const* arg)
 					RGB2_Yellow();
 					break;
 				case TVOC_PPM_DANGER:
-	//				RGB1_Red();
-	//				RGB2_Red();
+//					RGB1_Red();
+//					RGB2_Red();
 					break;
 				default:
 					RGB1_Close();
@@ -189,7 +225,7 @@ static void beep_task(void const* arg)
 			reset_beep();
 			continue;
 		}
-		if(sys_flag.tvoc_level>=TVOC_PPM_03 && p_air_sensor->health)
+		if(sys_flag.tvoc_level>=TVOC_PPM_03 && p_air_sensor->init)
 		{
 			set_beep();
 			osDelay(500);
@@ -225,6 +261,7 @@ static void usart1_receive_task(void const* arg)
 					/* 换算等级 */
 					sys_flag.tvoc_level = p_air_sensor->convert_level((unsigned int)(p_air_sensor->air_ppm*10));
 					sys_flag.tvoc_ppm = (unsigned char)p_air_sensor->air_ppm;
+					sys_flag.oled_update_area |= OLED_UPDATE_AREA_AIR_YES;
 					
 					write(USART2_ID, &buff[0], data_len);
 				}
@@ -327,16 +364,39 @@ static void usart2_receive_task(void const* arg)
 static void update_oled_task(void const* arg)
 {	
 	char buff[10];
+	const unsigned char *pchinese = 0;
+	sys_flag.oled_update_area = 0;
 		
 	OLED_Init();
 	OLED_Clear();	
+	display_title();
+	osDelay(5000);
+	OLED_Clear();
 	display_string_Font8_16(48, 0, "ppm");
 	display_fuhao_Font8_16(48, 3, 1);
 	display_string_Font8_16(48, 6, "RH");
+	display_chinese_font16_16(80,0,&chinese16_16[0][0]);
+	display_chinese_font16_16(96,0,&chinese16_16[1][0]);
+	OLED_ShowString(88,2,">>",8);
 		
 	while(1)
 	{
 		osDelay(1500);
+		
+		if((sys_flag.oled_update_area & OLED_AUTHOR_UPDATE_YES)>0)
+		{
+			OLED_Clear();	
+			display_title();
+			osDelay(10000);
+			sys_flag.oled_update_area &= OLED_AUTHOR_UPDATE_NO;
+			OLED_Clear();
+			display_string_Font8_16(48, 0, "ppm");
+			display_fuhao_Font8_16(48, 3, 1);
+			display_string_Font8_16(48, 6, "RH");
+			display_chinese_font16_16(80,0,&chinese16_16[0][0]);
+			display_chinese_font16_16(96,0,&chinese16_16[1][0]);
+			OLED_ShowString(88,2,">>",8);
+		}
 		
 		/*清楚PPM显示区域*/
 		OLED_Clear_Area(0, 0, 48, 0);
@@ -349,7 +409,35 @@ static void update_oled_task(void const* arg)
 			{
 				display_string_Font16_16(16, 0, "0");
 			}
+			if((sys_flag.oled_update_area & OLED_UPDATE_AREA_AIR_YES)>0)  /* 判断是否需要更新空气质量显示区域 */
+			{
+				switch(sys_flag.tvoc_level)
+				{
+					case TVOC_PPM_00:  /* 等级0  <1.5ppm */
+						pchinese = &chinese16_16[2][0];
+						break;
+					case TVOC_PPM_01: /* 等级1  1.5~5.5ppm */
+						pchinese = &chinese16_16[4][0];
+						break;
+					case TVOC_PPM_02:  /* 等级2  5.5~10ppm */
+						pchinese = &chinese16_16[6][0];		
+						break;
+					case TVOC_PPM_03:  /* 等级3  >10ppm */
+						pchinese = &chinese16_16[8][0];
+						break;
+					case TVOC_PPM_DANGER:
+						pchinese = &chinese16_16[8][0];
+						break;
+					default: pchinese = 0; break;
+				}
+			}
 			display_string_Font16_16(48-strlen(buff)*16, 0, buff);
+			if(0!=pchinese)
+			{
+				OLED_Clear_Area(80, 4, 128, 5);
+				display_chinese_font16_16(80,4,pchinese);
+				display_chinese_font16_16(96,4,pchinese+32);
+			}
 		}else
 		{
 			OLED_ShowString(16, 0, "--", 16);
@@ -363,6 +451,7 @@ static void init_system(void)
 {
 	initUsartBuff(USART2_ID);
 	initUsartBuff(USART1_ID);
+	init_system_button();
 	mutex_usart1_tx = xSemaphoreCreateMutex();
 	mutex_usart2_tx = xSemaphoreCreateMutex();
 	button_event_queue = xQueueCreate( 10, sizeof( Button* ));
@@ -385,6 +474,7 @@ void button_event_task(void const* arg)
 {
 	init_system_button();
 	Button* bt = 0;	
+	unsigned int step = 0;
 	
 	while(1)
 	{
@@ -416,12 +506,21 @@ void button_event_task(void const* arg)
 					/* 处理按键回弹事件 */
 					if(bt->down_time*30<500 && id==1)
 					{
-						sys_flag.open_beep = !sys_flag.open_beep;
+						sys_flag.button_click = 1;
+						if(sys_flag.rgb_sw)
+						{
+							sys_flag.rgb_list++;
+							sys_flag.rgb_list %= 5;
+						}else
+						{
+							sys_flag.open_beep = !sys_flag.open_beep;
+						}
 					}
 					
 					if(bt->down_time*30<500 && id==0)
 					{
 						sys_flag.open_rgb = !sys_flag.open_rgb;
+						sys_flag.button_click = 1;
 					}
 					/* end */
 					bt->down_time = 0;
@@ -449,8 +548,20 @@ void button_event_task(void const* arg)
 						/* 处理事件 */
 						if(b->down_time*30<3500)
 						{
+							
 						}else if(b->down_time*30>5000)
 						{
+							if(0==i)
+								sys_flag.oled_update_area |= OLED_AUTHOR_UPDATE_YES; 
+							else if(1==i)
+							{
+								sys_flag.rgb_sw = !sys_flag.rgb_sw;
+								if(sys_flag.rgb_sw)
+								{
+									sys_flag.rgb_list = 0;
+								}
+							}
+							b->status = BUTTON_STATUS_NONE;
 						}else if(b->down_time*30<3500)
 						{
 						}
@@ -459,6 +570,21 @@ void button_event_task(void const* arg)
 					}
 				}
 			}
+		}
+		
+		if(sys_flag.button_click)
+		{
+			++step;
+			if(step<10)
+			{
+				set_beep();
+			}
+			else
+			{
+				step = 0;
+				reset_beep();
+				sys_flag.button_click = 0;
+			}			
 		}
 	}
 }

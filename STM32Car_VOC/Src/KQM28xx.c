@@ -12,6 +12,9 @@ void update(char data)
 	{
 		pas->parse_flag = AIR_SENSOR_START;
 		pas->check_sum += data;
+		pas->error = 0;
+		pas->air_ppm = 0.0;
+		pas->health = 0;
 		
 		return;
 	}
@@ -51,6 +54,7 @@ void update(char data)
 
 TVOC_PPM_STATUS convert_level(unsigned int data)
 {
+	if(data==0xffff) return 0;
 	if(data>=0 && data<=15)
 		return TVOC_PPM_00;
 	else if(data>15 && data<=55)

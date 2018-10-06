@@ -30,6 +30,7 @@
 	void display_fuhao_Font8_16(unsigned char x, unsigned char y, unsigned char index);
 	void display_string_Font16_16(unsigned char x, unsigned char y, char* pc);
 	void display_num_font16_16_char(unsigned char x,unsigned char y,unsigned char chr);
+	void display_chinese_font16_16(unsigned char x,unsigned char y,unsigned char* pdata);
 	void display_fuhao_Font6_8(unsigned char x, unsigned char y, unsigned char index);
 	void display_north(unsigned char x, unsigned char y);
 	void display_logo(void);
@@ -38,6 +39,8 @@
 	unsigned char int_to_string(int value, char* buff, unsigned int num);
 	unsigned char float_to_string(double value, char* buff, unsigned int num, unsigned int dotNum);
 	static int pow_int(int num, int i);
+	
+	extern const unsigned char chinese16_16[][32];
 	
 	
 #endif

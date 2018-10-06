@@ -15,6 +15,12 @@
 	
 	#define OLED_PAGE1_UPDATE_VALID  		(1<<1)
 	#define OLED_PAGE1_UPDATE_INVALID		(~(1<<1))	
+	
+	#define OLED_UPDATE_AREA_AIR_YES (1<<0)
+	#define OLED_UPDATE_AREA_AIR_NO  (~(1<<0))
+	
+	#define OLED_AUTHOR_UPDATE_YES (1<<1)
+	#define OLED_AUTHOR_UPDATE_NO (~(1<<1))
 		
 	typedef struct system_flag
 	{
@@ -22,8 +28,12 @@
 		unsigned char temprtr;
 		unsigned char humidity;
 		TVOC_PPM_STATUS tvoc_level;
+		unsigned char oled_update_area;
 		unsigned char open_rgb:1;
-		unsigned char open_beep:2;
+		unsigned char open_beep:1;
+		unsigned char button_click:1;
+		unsigned char rgb_sw: 1;/* 0-Ä¬ÈÏ×´Ì¬ÏÔÊ¾   1-¿É°´¼üÇÐ»»*/
+	  unsigned char rgb_list; /* 0-red, 1-green, 2-blue, 3-yellow, 4-Purple, 5-close */
 	}system_flag;
 	
 	static xSemaphoreHandle mutex_usart1_tx;

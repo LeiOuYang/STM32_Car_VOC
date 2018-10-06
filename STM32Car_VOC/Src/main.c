@@ -152,7 +152,6 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-	HAL_TIM_Base_Start_IT(&htim1);
 	app_run();
   /* USER CODE END RTOS_THREADS */
 
