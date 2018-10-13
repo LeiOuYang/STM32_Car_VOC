@@ -9,13 +9,14 @@
 static system_flag sys_flag = { 0,0,0,0,0,1,1,0,0,0};
 xQueueHandle button_event_queue;
 extern const unsigned char chinese16_16[][32];
+static DHT11 dht11;
 
 void app_run(void)
 {
 	init_system();
 	/* 喂狗任务 */
-	osThreadDef(FeedDogThread, feed_dog_task, osPriorityIdle, 0, 128);
-	osThreadCreate(osThread(FeedDogThread), NULL);	
+//	osThreadDef(FeedDogThread, feed_dog_task, osPriorityIdle, 0, 128);
+//	osThreadCreate(osThread(FeedDogThread), NULL);	
 	
 	/* led闪烁任务 */
 	osThreadDef(LedBlinkThread, led_blink_task, osPriorityIdle, 0, 128);
@@ -48,11 +49,11 @@ void app_run(void)
 	osThreadCreate(osThread(UART2TXTask), NULL);
 	
 	/* DHT11数据处理任务 */
-//	osThreadDef(DHT11Task, dht11_process_task, osPriorityLow, 0, 128);
-//	osThreadCreate(osThread(DHT11Task), NULL);
+	osThreadDef(DHT11Task, dht11_process_task, osPriorityRealtime, 0, 256);
+	osThreadCreate(osThread(DHT11Task), NULL);
 	
 	/* 按键队列处理任务 */
-	osThreadDef(ButtonTask, button_event_task, osPriorityRealtime, 0, 128);
+	osThreadDef(ButtonTask, button_event_task, osPriorityHigh, 0, 128);
 	osThreadCreate(osThread(ButtonTask), NULL);	
 	
 }
@@ -61,14 +62,13 @@ void app_run(void)
 static void dht11_process_task(void* arg)
 {
 	osDelay(1500);  /* 延时1.5S等待模块稳定 */
-	HAL_TIM_Base_Start_IT(&htim1); /* 开启定时处理任务，1us进入定时器中断*/
+	HAL_TIM_Base_Start_IT(&htim2); /* 开启定时处理任务，10us进入定时器中断*/
 	
 	while(1)
 	{
-		if(!p_dht11->valid)
-		{
-			DHT11_start(p_dht11);
-		}
+//		taskENTER_CRITICAL();
+		DHT11_read_data(&dht11);
+//		taskEXIT_CRITICAL();
 		
 		osDelay(5500);  /* 没5.5S读取一次温湿度数据 */
 	}	
@@ -456,8 +456,10 @@ static void init_system(void)
 	mutex_usart2_tx = xSemaphoreCreateMutex();
 	button_event_queue = xQueueCreate( 10, sizeof( Button* ));
 	
-	p_air_sensor = get_air_sensor();
-	p_dht11 = get_dht11();
+	p_air_sensor = get_air_sensor(); 
+	dht11.GPIOx = GPIOB;
+	dht11.GPIO_Pin = GPIO_PIN_11;
+	DHT11_init(&dht11);
 	
 	initUsartIT(&huart1);
 	initUsartIT(&huart2);

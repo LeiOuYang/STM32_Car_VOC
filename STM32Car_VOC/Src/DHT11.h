@@ -28,32 +28,21 @@
 
 #define MAX_DATA_BIT_COUNT 40
 
-typedef enum DHT11_status
-{
-	DHT11_NONE,
-	DHT11_START,
-	DHT11_DATA,
-	DHT11_DATA_1,
-	DHT11_DATA_END,
-	
-}DHT11_status;
-
 typedef struct dht11
 {
-	unsigned int time_count;
-	unsigned char data[5];  
-	unsigned char data_count;
-	unsigned char start_falg;
-	unsigned char data_start_flag;
-	unsigned char status;
+	GPIO_TypeDef* GPIOx;
+	unsigned int GPIO_Pin;
+	float TEMP;
+	float RH;
 	unsigned char valid;
+	unsigned char data[5];
 }DHT11;
 
-void DHT11_io_in_config(void);
-void DHT11_io_out_config(void);
+void DHT11_io_in_config(DHT11* pdht);
+void DHT11_io_out_config(DHT11* pdht);
 unsigned char DHT11_start(DHT11* dht);
-void DHT11_data_process(DHT11* dht);
-DHT11* get_dht11(void);
+void DHT11_read_data(DHT11* dht);
+void delay10us(unsigned int time);
 extern void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 
 #endif
