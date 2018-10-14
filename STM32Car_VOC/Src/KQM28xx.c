@@ -14,10 +14,11 @@ void update(char data)
 		pas->check_sum += data;
 		pas->error = 0;
 		pas->air_ppm = 0.0;
-		pas->health = 0;
 		
 		return;
-	}
+	}else 
+		pas->health = 0;
+	
 	switch(pas->parse_flag)
 	{
 		case AIR_SENSOR_START:			

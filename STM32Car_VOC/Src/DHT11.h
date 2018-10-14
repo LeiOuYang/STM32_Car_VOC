@@ -34,14 +34,16 @@ typedef struct dht11
 	unsigned int GPIO_Pin;
 	float TEMP;
 	float RH;
-	unsigned char valid;
+	unsigned char valid;     /* 传感器原始数据有效标志  1-成功获取原始数据   0-错误*/ 
+	unsigned char reading;   /* 前端程序获取数据标志  1-正在读取数据   0-操作数据完成 */
+	unsigned char exist;     /* 传感器存在  1-存在   0-不存在 */
 	unsigned char data[5];
 }DHT11;
 
 void DHT11_io_in_config(DHT11* pdht);
 void DHT11_io_out_config(DHT11* pdht);
 unsigned char DHT11_start(DHT11* dht);
-void DHT11_read_data(DHT11* dht);
+unsigned char DHT11_read_data(DHT11* dht);
 void delay10us(unsigned int time);
 extern void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 

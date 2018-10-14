@@ -21,6 +21,14 @@
 	
 	#define OLED_AUTHOR_UPDATE_YES (1<<1)
 	#define OLED_AUTHOR_UPDATE_NO (~(1<<1))
+	
+	typedef enum SENSOR_ERROR_STATUS
+	{
+		/* bit 1表示错误或者不存在    0-存在  */
+		SENSOR_TVOC_HEALTHY = 0x01,   /* TVOC传感器正常 */
+		SENSOR_DHT11_HEALTHY = 0x02,  /* DHT11温度湿度传感器正常 */
+	
+	}SENSOR_ERROR_STATUS;
 		
 	typedef struct system_flag
 	{
@@ -34,6 +42,8 @@
 		unsigned char button_click:1;
 		unsigned char rgb_sw: 1;/* 0-默认状态显示   1-可按键切换*/
 	  unsigned char rgb_list; /* 0-red, 1-green, 2-blue, 3-yellow, 4-Purple, 5-close */
+		
+		unsigned char sensor_healthy;  /* 传感器错误标志 枚举SENSOR_ERROR_STATUS */
 	}system_flag;
 	
 	static xSemaphoreHandle mutex_usart1_tx;
@@ -59,7 +69,10 @@
 	static void usart2_receive_task(void const* arg);
 	static void update_oled_task(void const* arg);
 	static void dht11_process_task(void* arg);
-	void button_event_task(void const* arg);
+	
+	static void update_sensor_status(void);
+	static void sensor_error_display(void);
+	static void button_event_task(void const* arg);
 	
 	
 	extern IWDG_HandleTypeDef hiwdg;

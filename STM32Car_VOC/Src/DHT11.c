@@ -11,6 +11,8 @@ void DHT11_init(DHT11* pdht)
 	pdht->TEMP = 0;
 	pdht->RH = 0;
 	pdht->valid = 0;
+	pdht->reading = 0;
+	pdht->exist = 0;
 }
 
 /* 配置浮空输入 */
@@ -38,7 +40,9 @@ void DHT11_io_out_config(DHT11* pdht)
 unsigned char DHT11_start(DHT11* dht)
 {
 	unsigned int timeout = 0;
+	
 	dht->valid = 0;
+	dht->reading = 0;
 	
 	DHT11_io_out_config(dht);  /* 配置输出 */
 	HAL_GPIO_WritePin(dht->GPIOx, dht->GPIO_Pin, GPIO_PIN_SET); /* 默认先输出高电平 */
@@ -54,7 +58,7 @@ unsigned char DHT11_start(DHT11* dht)
 	delay10us(3ul);
 		
 	/* 等待DHT11模块应答信号 */
-	timeout = 20000;
+	timeout = 50000;
 	while( HAL_GPIO_ReadPin(dht->GPIOx, dht->GPIO_Pin) )
 	{
 		--timeout;
@@ -62,8 +66,8 @@ unsigned char DHT11_start(DHT11* dht)
 	}
 	
 	/* DHT11应答信号80us */
-	timeout = 30000;
-	delay10us(2ul);
+	timeout = 50000;
+	delay10us(1ul);
 	while( !HAL_GPIO_ReadPin(dht->GPIOx, dht->GPIO_Pin) )
 	{
 		--timeout;
@@ -71,8 +75,8 @@ unsigned char DHT11_start(DHT11* dht)
 	}
 	
 	/* DHT11拉高准备 */
-	timeout = 30000;
-	delay10us(2ul);
+	timeout = 50000;
+	delay10us(1ul);
 	while( HAL_GPIO_ReadPin(dht->GPIOx, dht->GPIO_Pin) )
 	{
 		--timeout;
@@ -80,11 +84,12 @@ unsigned char DHT11_start(DHT11* dht)
 			return 0;
 	}
 	
+	dht->exist = 1;
 	return 1;
 }
 
 /* 读取40bit数据 */
-void DHT11_read_data(DHT11* dht)
+unsigned char DHT11_read_data(DHT11* dht)
 {
 	unsigned char t = 0;
 	t = DHT11_start(dht);
@@ -97,18 +102,18 @@ void DHT11_read_data(DHT11* dht)
 		for(count=0; count<40; ++count)
 		{
 			/* 等待低电平变成高电平 */
-			timeout = 30000;
-			delay10us(2ul);
+			timeout = 50000;
+			delay10us(1ul);
 			while( !HAL_GPIO_ReadPin(dht->GPIOx, dht->GPIO_Pin) )
 			{
 				--timeout;
 				if(!timeout)
 				{					
 					dht->valid = 0;
-					return;
+					return 0;
 				}
 			}
-			delay10us(4ul); /* 延时40us读取电平状态 */
+			delay10us(3ul); /* 延时40us读取电平状态 */
 			if(!HAL_GPIO_ReadPin(dht->GPIOx, dht->GPIO_Pin))
 			{
 				/* 数据位为0 */
@@ -119,28 +124,41 @@ void DHT11_read_data(DHT11* dht)
 				temp = 1;
 				
 				/* 等待高电平变成低电平 */
-				timeout = 30000;
+				timeout = 50000;
 				while( HAL_GPIO_ReadPin(dht->GPIOx, dht->GPIO_Pin) )
 				{
 					--timeout;
 					if(!timeout)
 					{					
 						dht->valid = 0;
-						return;
+						return 0;
 					}
 				}
 			}
-			dht->data[count/8] = ((dht->data[count/8])<<(count%8))|temp;			
+			dht->data[count/8] = ((dht->data[count/8])<<1)|temp;	
 		}
+		timeout = 50000;
+		while( !HAL_GPIO_ReadPin(dht->GPIOx, dht->GPIO_Pin) )
+		{
+			--timeout;
+			if(!timeout)
+			{					
+				dht->valid = 0;
+				return 0;
+			}
+		}
+		
 //		taskEXIT_CRITICAL();
 		if((dht->data[0]+dht->data[1]+dht->data[2]+dht->data[3])==(dht->data[4]))
 		{
 			dht->valid = 1;
-			dht->TEMP = dht->data[0];
-			dht->TEMP += dht->data[1]&0x7F;
-			if(dht->data[1]&0x80) dht->TEMP = -dht->TEMP;
-			dht->RH = dht->data[2] + dht->data[3]*0.1;
+			dht->TEMP = dht->data[2];
+			dht->TEMP += (dht->data[3]&0x7F)*0.1;
+			if(dht->data[3]&0x80) dht->TEMP = -dht->TEMP;
+			dht->RH = dht->data[0];
+			return 1;
 		}
+		return 0;
 	}
 }
 
