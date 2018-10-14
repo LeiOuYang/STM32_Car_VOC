@@ -16,8 +16,7 @@ void update(char data)
 		pas->air_ppm = 0.0;
 		
 		return;
-	}else 
-		pas->health = 0;
+	}
 	
 	switch(pas->parse_flag)
 	{
@@ -25,12 +24,12 @@ void update(char data)
 			pas->air_ppm = (float)(((unsigned short int)data)<<8);  /* 高位数据 */
 			pas->parse_flag = AIR_SENSOR_DATA1;
 			pas->check_sum += data;
-			break;
+			return;
 		case AIR_SENSOR_DATA1:
 			pas->air_ppm = pas->air_ppm + data;
 			pas->parse_flag = AIR_SENSOR_DATA2;
 			pas->check_sum += data;
-			break;
+			return;
 		case AIR_SENSOR_DATA2:
 			if((unsigned char)pas->check_sum == (unsigned char)data)
 			{
@@ -41,6 +40,7 @@ void update(char data)
 				pas->air_ppm = pas->air_ppm * 0.1;  /* 转化成ppm数据 */
 				pas->health = 1;
 				pas->error = 0;
+				pas->error_time = 0;
 			}else
 			{
 				pas->error = 1;
@@ -49,8 +49,18 @@ void update(char data)
 			}
 			pas->parse_flag = AIR_SENSOR_NONE;
 			pas->check_sum = 0;
-			break;
+			return;
+			
+		default: break;		
 	}
+	
+	pas->error_time += 20;
+	if( pas->error_time>=KQM28XX_MAX_ERROR_TIME )
+	{
+		pas->health = 0;
+		pas->error_time = 0;
+	}
+	
 }
 
 TVOC_PPM_STATUS convert_level(unsigned int data)
@@ -70,7 +80,7 @@ TVOC_PPM_STATUS convert_level(unsigned int data)
 
 AirSensor* get_air_sensor(void)
 {
-	static AirSensor air_sensor = { update, convert_level, 0.0, 0, AIR_SENSOR_NONE,0, 0 };
+	static AirSensor air_sensor = { update, convert_level, 0.0, 0, 0, AIR_SENSOR_NONE,0, 0 };
 	
 	return &air_sensor;
 }

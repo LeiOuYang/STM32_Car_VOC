@@ -31,6 +31,8 @@
 #define KQM28XX_H
 
 #define FRAME_START 0x5F
+#define KQM28XX_UPDATE_MS 20  /* update函数被调用的周期 20ms */
+#define KQM28XX_MAX_ERROR_TIME 5000 /* 5000ms内无数据时间 */
 
 typedef enum TVOC_PPM_STATUS
 {
@@ -58,6 +60,7 @@ typedef struct air_sensor
 	float air_ppm;
 	unsigned int check_sum;
 	AirSensorFlag parse_flag;
+	unsigned char error_time; /* 一段时间段内没有数据，则认为传感器不健康，默认为5000ms内没有数据，则认为传感器不健康*/
 	unsigned char health;    /* 5秒内无数据输出，则认为不健康 ，不健康为0，健康为1 */
 	unsigned char init:1;    /* 传感器成功启动标志，数据有效 */  
 	unsigned char error:1;   /* 解析错误标志，数据解析出错-0，正确为-1 */

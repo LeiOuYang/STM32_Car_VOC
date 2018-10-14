@@ -15,8 +15,8 @@ void app_run(void)
 {
 	init_system();
 	/* 喂狗任务 */
-//	osThreadDef(FeedDogThread, feed_dog_task, osPriorityIdle, 0, 128);
-//	osThreadCreate(osThread(FeedDogThread), NULL);	
+	osThreadDef(FeedDogThread, feed_dog_task, osPriorityIdle, 0, 128);
+	osThreadCreate(osThread(FeedDogThread), NULL);	
 	
 	/* led闪烁任务 */
 	osThreadDef(LedBlinkThread, led_blink_task, osPriorityIdle, 0, 128);
@@ -68,18 +68,21 @@ static void dht11_process_task(void* arg)
 	while(1)
 	{
 		if( !dht11.reading )  
+//			DHT11_read_data(&dht11);
 			if( !DHT11_read_data(&dht11) )
 			{
 				++count;
-				if(count>=6)
+				if(count>=4)
 				{
-					count = 6;
+					count = 4;
 					dht11.exist = 0;
+					sys_flag.sensor_healthy &= ~SENSOR_DHT11_HEALTHY;
+					
 				}
 			}else
 			{
 				count = 0;	
-				dht11.exist = 1;
+				sys_flag.sensor_healthy |= SENSOR_DHT11_HEALTHY;
 			}
 		
 		osDelay(5500);  /* 每2秒读取一次温湿度数据 */
@@ -279,15 +282,15 @@ static void usart1_receive_task(void const* arg)
 					sys_flag.oled_update_area |= OLED_UPDATE_AREA_AIR_YES;
 					
 //					write(USART2_ID, &buff[0], data_len);
-				}else
-				{
-					++count;  
-					if(count>=500)  /* 检测到10秒内DHT传输数据错误或者没有数据 */
-					{
-						count = 500;
-						p_air_sensor->health = 0;
-					}
 				}
+			}
+		}else if(0==data_len)
+		{
+			count++;
+			if(count>=250)
+			{
+				count = 250;
+				sys_flag.sensor_healthy &= ~SENSOR_TVOC_HEALTHY;
 			}
 		}
 	}
@@ -509,7 +512,7 @@ static void init_system(void)
 	
 	p_air_sensor = get_air_sensor(); 
 	dht11.GPIOx = GPIOB;
-	dht11.GPIO_Pin = GPIO_PIN_11;
+	dht11.GPIO_Pin = GPIO_PIN_10;
 	DHT11_init(&dht11);
 	
 	initUsartIT(&huart1);
@@ -518,7 +521,8 @@ static void init_system(void)
 	write(USART1_ID, "USART1 ENBALE\n", sizeof("USART1 ENBALE\n")/sizeof(char));
 	write(USART2_ID, "USART2 ENBALE\n", sizeof("USART2 ENBALE\n")/sizeof(char));
 	
-	
+	sys_flag.open_rgb = 0;
+	sys_flag.sensor_healthy = 0;
 }
 /* function code end */
 
@@ -671,13 +675,13 @@ static void initUsartIT(UART_HandleTypeDef *huart)
 /* 更新传感器标志 */
 static void update_sensor_status(void)
 {
-	if(dht11.exist)
-	{
-		sys_flag.sensor_healthy |= SENSOR_DHT11_HEALTHY;
-	}else
-	{
-		sys_flag.sensor_healthy &= ~SENSOR_DHT11_HEALTHY;
-	}
+//	if(dht11.exist)
+//	{
+//		sys_flag.sensor_healthy |= SENSOR_DHT11_HEALTHY;
+//	}else
+//	{
+//		sys_flag.sensor_healthy &= ~SENSOR_DHT11_HEALTHY;
+//	}
 	
 	if(p_air_sensor->health)
 	{
@@ -691,20 +695,36 @@ static void update_sensor_status(void)
 /* 传感器错误提示 */
 static void sensor_error_display(void)
 {
-	OLED_Clear_Area(102, 6, 108, 6);
+	OLED_Clear_Area(96, 6, 127, 6);
+	OLED_Clear_Area(96, 7, 127, 7);
 	
 	if( (sys_flag.sensor_healthy&SENSOR_DHT11_HEALTHY)&&(sys_flag.sensor_healthy&SENSOR_TVOC_HEALTHY) )
 		return;
 	
+	if( !(sys_flag.sensor_healthy&SENSOR_DHT11_HEALTHY) )
+	{
+		/*清楚温度显示区域*/
+		OLED_Clear_Area(0, 4, 64, 4);
+		OLED_Clear_Area(0, 3, 64, 3);
+
+		/*清楚温度显示区域*/
+		OLED_Clear_Area(0, 6, 48, 6);
+		OLED_Clear_Area(0, 7, 48, 7);
+		display_string_Font8_16(96, 6, "E2");
+	}
+	
+	if( !(sys_flag.sensor_healthy&SENSOR_TVOC_HEALTHY) )
+	{
+		OLED_Clear_Area(0, 0, 48, 0);
+		OLED_Clear_Area(0, 1, 48, 1);
+		OLED_Clear_Area(80, 4, 128, 5);
+		OLED_ShowString(16, 0, "--", 16);
+		display_string_Font8_16(96, 6, "E1");
+	}
+	
 	if( (!(sys_flag.sensor_healthy&SENSOR_DHT11_HEALTHY)) && (!(sys_flag.sensor_healthy&SENSOR_TVOC_HEALTHY)))
 	{
 		display_string_Font8_16(96, 6, "E3");
-	}else if( !(sys_flag.sensor_healthy&SENSOR_DHT11_HEALTHY) )
-	{
-		display_string_Font8_16(96, 6, "E2");
-	}else if( !(sys_flag.sensor_healthy&SENSOR_TVOC_HEALTHY) )
-	{
-		display_string_Font8_16(96, 6, "E1");
 	}
 }
 
