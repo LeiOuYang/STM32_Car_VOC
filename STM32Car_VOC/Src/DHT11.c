@@ -48,7 +48,7 @@ unsigned char DHT11_start(DHT11* dht)
 	HAL_GPIO_WritePin(dht->GPIOx, dht->GPIO_Pin, GPIO_PIN_SET); /* 默认先输出高电平 */
 	
 	/* 拉低电平20ms */
-	osDelay(2);
+	delay10us(3ul);
 	HAL_GPIO_WritePin(dht->GPIOx, dht->GPIO_Pin, GPIO_PIN_RESET); 
 	osDelay(20);
 	

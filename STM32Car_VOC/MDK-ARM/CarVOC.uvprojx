@@ -488,6 +488,11 @@
               <FileType>1</FileType>
               <FilePath>../Src/stm32f1xx_hal_msp.c</FilePath>
             </File>
+            <File>
+              <FileName>usart_lcd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\usart_lcd.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

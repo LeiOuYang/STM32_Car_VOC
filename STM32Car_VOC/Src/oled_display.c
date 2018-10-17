@@ -402,7 +402,7 @@ void copy_string(char* dest,char *src,unsigned int num)
 			*dest = *src;
 			++dest;
 			++src;
-		} 
+		}
 	}
 } 
 

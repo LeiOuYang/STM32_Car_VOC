@@ -10,6 +10,7 @@ static system_flag sys_flag = { 0,0,0,0,0,1,1,0,0,0,0};
 xQueueHandle button_event_queue;
 extern const unsigned char chinese16_16[][32];
 static DHT11 dht11;
+static LCD lcd;
 
 void app_run(void)
 {
@@ -45,7 +46,7 @@ void app_run(void)
 	osThreadDef(UART1TXTask, usart1_send_task, osPriorityBelowNormal, 0, 256);
 	osThreadCreate(osThread(UART1TXTask), NULL);
 	/* 串口2接收数据处理任务 */
-	osThreadDef(UART2TXTask, usart2_send_task, osPriorityBelowNormal, 0, 256);
+	osThreadDef(UART2TXTask, usart2_send_task, osPriorityBelowNormal, 0, 512);
 	osThreadCreate(osThread(UART2TXTask), NULL);
 	
 	/* DHT11数据处理任务 */
@@ -68,6 +69,7 @@ static void dht11_process_task(void* arg)
 	while(1)
 	{
 		if( !dht11.reading )  
+		{
 //			DHT11_read_data(&dht11);
 			if( !DHT11_read_data(&dht11) )
 			{
@@ -84,8 +86,13 @@ static void dht11_process_task(void* arg)
 				count = 0;	
 				sys_flag.sensor_healthy |= SENSOR_DHT11_HEALTHY;
 			}
-		
-		osDelay(5500);  /* 每2秒读取一次温湿度数据 */
+		}
+			
+//		xSemaphoreTake( mutex_usart2_tx, portMAX_DELAY );	
+//		usart_lcd_display();
+//		xSemaphoreGive(mutex_usart2_tx);
+			
+		osDelay(3000);  /* 每2秒读取一次温湿度数据 */
 	}	
 }
 /* function code end */
@@ -336,31 +343,83 @@ static void usart2_send_task(void const* arg)
 {
 	uint16_t data_len = 0;
 	LoopQueue* sendQueue;
-	char send_buff[128];
+	char send_buff[256];
+	float speed = 0;
+	unsigned char gps = 0;
+	unsigned char error = 0;
+
+	osDelay(2000);
+	HAL_UART_Transmit(&huart2, get_lcd_str(), strlen(get_lcd_str()), 1000);
+	osDelay(1000);
+	HAL_UART_Transmit(&huart2, get_lcd_str(), strlen(get_lcd_str()), 1000);
 	
 	while(1)
 	{
-		osDelay(50);		
+		osDelay(1000);		
+//		xSemaphoreTake( mutex_usart2_tx, portMAX_DELAY );
 		
-		//HAL_UART_Transmit(&huart2, "Hello World-2\n", sizeof("Hello World-1\n"), 1000);
-		
-		xSemaphoreTake( mutex_usart2_tx, portMAX_DELAY );		
-		sendQueue = getUsartSendLoopQueue(USART2_ID); /* get send queue */
-		if(sendQueue!=NULL)
-		{		
-			data_len = writeBuffLen(USART2_ID); /* send queue data count */
-			if(data_len>0)
+		/* 温湿度更新显示 */
+		if(dht11.exist)
+		{			
+			if(dht11.valid)
 			{
-				unsigned int i = 0;
-				if(data_len>128) data_len=128;
-				for( i=0; i<data_len; ++i)
-				{
-					send_buff[i] = readCharLoopQueue(sendQueue);
-				}
-				HAL_UART_Transmit_DMA(&huart2, (uint8_t *)send_buff, (uint16_t)data_len); /* DMA send	*/
+				dht11.reading = 1;
+				
+				osDelay(100);	
+				usart_lcd_display_temp(dht11.TEMP, &lcd, 60, 14);
+				HAL_UART_Transmit(&huart2, lcd.display_buff, strlen(lcd.display_buff), 150);
+
+				osDelay(100);
+				usart_lcd_display_RH(dht11.RH, &lcd, 60, 14);
+				HAL_UART_Transmit(&huart2, lcd.display_buff, strlen(lcd.display_buff), 150);
+				
+				dht11.reading = 0;
+				
 			}
-		}		
-		xSemaphoreGive(mutex_usart2_tx);
+		}
+		
+		/* 更新TVOC传感器数据显示 */
+		if(p_air_sensor->init)
+		{
+			osDelay(100);
+			usart_lcd_display_TVOC(p_air_sensor->air_ppm, &lcd, 60, 14);
+			HAL_UART_Transmit(&huart2, lcd.display_buff, strlen(lcd.display_buff), 150);
+			
+			osDelay(100);
+			usart_lcd_display_airq(sys_flag.tvoc_level, &lcd, 60, 14);
+			HAL_UART_Transmit(&huart2, lcd.display_buff, strlen(lcd.display_buff), 150);
+		}
+		
+		osDelay(100);
+		gps += 1;
+		usart_lcd_display_GPS(gps, &lcd, 60, 3);
+		HAL_UART_Transmit(&huart2, lcd.display_buff, strlen(lcd.display_buff), 150);
+		
+		osDelay(100);
+		++speed;
+		usart_lcd_display_speed(speed, &lcd,60, 45);
+		HAL_UART_Transmit(&huart2, lcd.display_buff, strlen(lcd.display_buff), 150);
+		
+		osDelay(100);
+		usart_lcd_display_error(error++, &lcd,60, 1);
+		HAL_UART_Transmit(&huart2, lcd.display_buff, strlen(lcd.display_buff), 150);
+	
+//		sendQueue = getUsartSendLoopQueue(USART2_ID); /* get send queue */
+//		if(sendQueue!=NULL)
+//		{		
+//			data_len = writeBuffLen(USART2_ID); /* send queue data count */
+//			if(data_len>0)
+//			{
+//				unsigned int i = 0;
+//				if(data_len>256) data_len=256;
+//				for( i=0; i<data_len; ++i)
+//				{
+//					send_buff[i] = readCharLoopQueue(sendQueue);
+//				}
+//				HAL_UART_Transmit_DMA(&huart2, (uint8_t *)send_buff, (uint16_t)data_len); /* DMA send	*/
+//			}
+//		}		
+//		xSemaphoreGive(mutex_usart2_tx);
 	}
 }
 /* function code end */
@@ -518,8 +577,8 @@ static void init_system(void)
 	initUsartIT(&huart1);
 	initUsartIT(&huart2);
 	
-	write(USART1_ID, "USART1 ENBALE\n", sizeof("USART1 ENBALE\n")/sizeof(char));
-	write(USART2_ID, "USART2 ENBALE\n", sizeof("USART2 ENBALE\n")/sizeof(char));
+//	write(USART1_ID, "USART1 ENBALE\n", sizeof("USART1 ENBALE\n")/sizeof(char));
+//	write(USART2_ID, "USART2 ENBALE\n", sizeof("USART2 ENBALE\n")/sizeof(char));
 	
 	sys_flag.open_rgb = 0;
 	sys_flag.sensor_healthy = 0;

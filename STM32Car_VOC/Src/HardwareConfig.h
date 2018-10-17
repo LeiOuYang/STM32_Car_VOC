@@ -7,6 +7,7 @@
 	#include "UsartDriver.h"
 	#include "KQM28xx.h"
 	#include "DHT11.h"
+	#include "usart_lcd.h"
 	
 	/* led io conifg */
 	
