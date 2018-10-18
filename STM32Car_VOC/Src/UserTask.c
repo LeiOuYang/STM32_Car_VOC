@@ -28,30 +28,33 @@ void app_run(void)
 	osThreadCreate(osThread(RGBBlinkThread), NULL);
 	
 	/* 开启更新显示OLED显示屏幕 */
-	osThreadDef(OledTask, update_oled_task, osPriorityIdle, 0, 128);
-	osThreadCreate(osThread(OledTask), NULL);	
+//	osThreadDef(OledTask, update_oled_task, osPriorityIdle, 0, 128);
+//	osThreadCreate(osThread(OledTask), NULL);	
 
 	/* 蜂鸣器鸣叫任务 */
 	osThreadDef(BeepBlinkThread, beep_task, osPriorityIdle, 0, 128);
 	osThreadCreate(osThread(BeepBlinkThread), NULL);
 	
 	/* 串口1接收数据处理任务 */
-	osThreadDef(UART1RXTask, usart1_receive_task, osPriorityLow, 0, 256);
+	osThreadDef(UART1RXTask, usart1_receive_task, osPriorityBelowNormal, 0, 256);
 	osThreadCreate(osThread(UART1RXTask), NULL);
 	/* 串口2接收数据处理任务 */
 	osThreadDef(UART2RXTask, usart2_receive_task, osPriorityLow, 0, 256);
 	osThreadCreate(osThread(UART2RXTask), NULL);
+	/* 串口3接收数据处理任务 */
+	osThreadDef(UART3RXTask, usart3_receive_task, osPriorityLow, 0, 512+128);
+	osThreadCreate(osThread(UART3RXTask), NULL);
 	
-	/* 串口1接收数据处理任务 */
+	/* 串口1发送处理任务 */
 	osThreadDef(UART1TXTask, usart1_send_task, osPriorityBelowNormal, 0, 256);
 	osThreadCreate(osThread(UART1TXTask), NULL);
-	/* 串口2接收数据处理任务 */
-	osThreadDef(UART2TXTask, usart2_send_task, osPriorityBelowNormal, 0, 512);
+	/* 串口2发送数据处理任务 */
+	osThreadDef(UART2TXTask, usart2_send_task, osPriorityNormal, 0, 512+128);
 	osThreadCreate(osThread(UART2TXTask), NULL);
 	
 	/* DHT11数据处理任务 */
-	osThreadDef(DHT11Task, dht11_process_task, osPriorityRealtime, 0, 256);
-	osThreadCreate(osThread(DHT11Task), NULL);
+//	osThreadDef(DHT11Task, dht11_process_task, osPriorityRealtime, 0, 256);
+//	osThreadCreate(osThread(DHT11Task), NULL);
 	
 	/* 按键队列处理任务 */
 	osThreadDef(ButtonTask, button_event_task, osPriorityHigh, 0, 128);
@@ -343,9 +346,7 @@ static void usart2_send_task(void const* arg)
 {
 	uint16_t data_len = 0;
 	LoopQueue* sendQueue;
-	char send_buff[256];
-	float speed = 0;
-	unsigned char gps = 0;
+	char send_buff[300];
 	unsigned char error = 0;
 
 	osDelay(2000);
@@ -391,13 +392,21 @@ static void usart2_send_task(void const* arg)
 		}
 		
 		osDelay(100);
-		gps += 1;
-		usart_lcd_display_GPS(gps, &lcd, 60, 3);
+//		xSemaphoreTake( mutex_read_gps, portMAX_DELAY );	
+		if(gps_valid(get_gps_message()))
+			usart_lcd_display_GPS(get_gps_message()->use_satellite_count, &lcd, 60, 3);
+		else
+			usart_lcd_display_GPS(0, &lcd, 60, 3);
+//		xSemaphoreGive(mutex_read_gps);
 		HAL_UART_Transmit(&huart2, lcd.display_buff, strlen(lcd.display_buff), 150);
 		
 		osDelay(100);
-		++speed;
-		usart_lcd_display_speed(speed, &lcd,60, 45);
+//		xSemaphoreTake( mutex_read_gps, portMAX_DELAY );	
+			if(gps_valid(get_gps_message()))
+				usart_lcd_display_speed(get_gps_message()->groundSpeed, &lcd,60, 45);
+			else
+				usart_lcd_display_speed(0.0, &lcd,60, 45);
+//		xSemaphoreGive(mutex_read_gps);
 		HAL_UART_Transmit(&huart2, lcd.display_buff, strlen(lcd.display_buff), 150);
 		
 		osDelay(100);
@@ -441,6 +450,87 @@ static void usart2_receive_task(void const* arg)
 			/* 解析数据 */
 			//write(USART2_ID, &buff[0], data_len);
 		}
+	}
+}
+/* function code end */
+
+/* 串口3接收处理任务 */
+static void usart3_receive_task(void const* arg)
+{
+	unsigned int data_len = 0;
+	char buff[200];
+	char nmea_buff[128];
+	unsigned int i = 0;
+	unsigned char count = 0;
+	unsigned int gpscount = 0;
+	
+	while(1)
+	{
+		osDelay(20);
+		data_len = readBuffLen(USART3_ID); /* 读取串口3缓冲队列中的数据长度 */
+		if(data_len>0)
+		{
+			if(data_len>200) data_len = 200;			
+			read(USART3_ID, &buff[0], data_len);
+			
+			/* 解析数据 */
+			for(i=0; i<data_len; ++i)
+			{
+				if(get_nmea_frame(buff[i], nmea_buff, &gpscount))//按字符解析，如果得到一帧数据，则为真
+				{
+					xSemaphoreTake( mutex_read_gps, portMAX_DELAY );	
+					nema_message_parse(nmea_buff, get_gps_message(), gpscount); //对一帧数据进行解析
+					count = 0;
+					xSemaphoreGive(mutex_read_gps);
+				}else
+				{
+					++count;
+				}
+			}
+		}else if(0==data_len)
+		{
+			count++;
+		}
+		
+		if(count>=250)
+		{
+			count = 250;
+			get_gps_message()->data_val = false;
+		}
+	}
+}
+/* function code end */
+
+/* 串口3发送任务 */
+static void usart3_send_task(void const* arg)
+{
+	uint16_t data_len = 0;
+	LoopQueue* sendQueue;
+	char send_buff[128];
+	
+	while(1)
+	{
+		osDelay(50);	
+
+		//HAL_UART_Transmit(&huart1, "Hello World-1\n", sizeof("Hello World-1\n"), 1000);
+		
+		xSemaphoreTake( mutex_usart1_tx, portMAX_DELAY );		
+		sendQueue = getUsartSendLoopQueue(USART1_ID); /* get send queue */
+		if(sendQueue!=NULL)
+		{		
+			data_len = writeBuffLen(USART1_ID); /* send queue data count */
+			if(data_len>0)
+			{
+				unsigned int i = 0;
+				if(data_len>128) data_len=128;
+				for( i=0; i<data_len; ++i)
+				{
+					send_buff[i] = readCharLoopQueue(sendQueue);
+				}
+				HAL_UART_Transmit_DMA(&huart1, (uint8_t *)send_buff, (uint16_t)data_len); /* DMA send	*/
+			}
+		}		
+		xSemaphoreGive(mutex_usart1_tx);
 	}
 }
 /* function code end */
@@ -564,18 +654,24 @@ static void init_system(void)
 {
 	initUsartBuff(USART2_ID);
 	initUsartBuff(USART1_ID);
+	initUsartBuff(USART3_ID);
+	
+	init_gps_message(get_gps_message());
+
 	init_system_button();
 	mutex_usart1_tx = xSemaphoreCreateMutex();
 	mutex_usart2_tx = xSemaphoreCreateMutex();
+	mutex_read_gps =  xSemaphoreCreateMutex();
 	button_event_queue = xQueueCreate( 10, sizeof( Button* ));
 	
 	p_air_sensor = get_air_sensor(); 
-	dht11.GPIOx = GPIOB;
-	dht11.GPIO_Pin = GPIO_PIN_10;
+	dht11.GPIOx = GPIOA;
+	dht11.GPIO_Pin = GPIO_PIN_5;
 	DHT11_init(&dht11);
 	
 	initUsartIT(&huart1);
 	initUsartIT(&huart2);
+	initUsartIT(&huart3);
 	
 //	write(USART1_ID, "USART1 ENBALE\n", sizeof("USART1 ENBALE\n")/sizeof(char));
 //	write(USART2_ID, "USART2 ENBALE\n", sizeof("USART2 ENBALE\n")/sizeof(char));

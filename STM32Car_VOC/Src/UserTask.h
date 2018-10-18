@@ -48,6 +48,7 @@
 	
 	static xSemaphoreHandle mutex_usart1_tx;
 	static xSemaphoreHandle mutex_usart2_tx;
+	static xSemaphoreHandle mutex_read_gps;
 	extern xQueueHandle button_event_queue;
 	
 	static AirSensor* p_air_sensor;	
@@ -67,6 +68,8 @@
 	static void usart1_receive_task(void const* arg);
 	static void usart2_send_task(void const* arg);
 	static void usart2_receive_task(void const* arg);
+	static void usart3_receive_task(void const* arg);
+	static void usart3_send_task(void const* arg);
 	static void update_oled_task(void const* arg);
 	static void dht11_process_task(void* arg);
 	
@@ -78,6 +81,7 @@
 	extern IWDG_HandleTypeDef hiwdg;
 	extern UART_HandleTypeDef huart1;
 	extern UART_HandleTypeDef huart2;
+	extern UART_HandleTypeDef huart3;
 	extern TIM_HandleTypeDef htim2;
 
 #endif

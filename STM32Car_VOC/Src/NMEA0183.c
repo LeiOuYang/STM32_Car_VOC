@@ -169,7 +169,7 @@ void init_gps_message(gps_message* gpsMsg)
 	if(0!=gpsMsg)
 	{
 		gpsMsg->data_val = false;
-		gpsMsg->fix_mode = 0;
+		gpsMsg->fix_mode = '0';
 		gpsMsg->lat_direc = 'N';
 		gpsMsg->scan_satellite_count = 0;
 		gpsMsg->gps_per = 0;
@@ -181,6 +181,7 @@ void init_gps_message(gps_message* gpsMsg)
 		gpsMsg->gb_scan_count = 0;
 		gpsMsg->gl_scan_count = 0;
 		gpsMsg->val = 0;
+		gpsMsg->groundSpeed = 0.0;
 	#if IMPORT_FLOAT==1
 		gpsMsg->altitude = 0.0;
 		gpsMsg->latitude = 0.0;
@@ -940,6 +941,17 @@ void vtg_parse(char* frame, gps_message* pos, unsigned int len)
 					
 				}else if(6==count) //字段6 速度单位 N=节 Knots
 				{
+					unsigned char t = 0;
+					pos->groundSpeed = 0;
+					for( t=0; '\0'!=buff[t]; ++t)
+					{
+						if('.'==buff[t])
+						{
+							pos->groundSpeed += (buff[t]-'0')*0.1;
+							break;
+						}
+						pos->groundSpeed += (buff[t]-'0')*pow(10,t);
+					}
 					
 				}else if(7==count) //字段7 水平运动速度0.00
 				{
@@ -1083,6 +1095,14 @@ void set_gps_vdop_str(char* str,unsigned char len)
 {
 	init_char_buff(get_gps_vdop_str(), 5, '-');
 	copy_string(get_gps_vdop_str(),str,4);   //字符串复制的长度由字符串结束符号与设置的长度决定
+}
+
+/* 判断GPS是否已经定位 */
+bool gps_valid(gps_message* gps)
+{
+	if(gps->data_val && gps->fix_mode>'0')
+		return true;
+	return false;
 }
 //垂直经度   end
 /* END  */

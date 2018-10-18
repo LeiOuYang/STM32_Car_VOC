@@ -3,7 +3,7 @@
 #include "usartdriver.h"
 #include "oled_display.h"
 
-char lcd_str[] = "CLR(60);BL(7);DIR(1);CIRF(5,5,3,53);DC16(10,0,'18',3);DC32(30,20,'100km/s', 22);DC24(10,75,'22.1¡æ',14);DC24(10,100,'22%',14);DC16(50,107,\'RH\',14);DC16(95,85,'Á¼ºÃ',14);SBC(15);DCV16(95,110,'ERROR:01',1);DC16(10,55,'TVOC:100.0ppm',14);\r\n";
+char lcd_str[] = "CLR(60);BL(7);DIR(1);CIRF(5,25,3,53);DC16(10,20,'00',3);DC16(14,0,'00:00   2000-00-00',3);DC32(30,25,'100km/s', 22);DC24(10,77,'22.1¡æ',14);DC24(10,100,'22%',14);DC16(50,107,\'RH\',14);DC16(95,85,'Á¼ºÃ',14);SBC(15);DCV16(95,110,'ERROR:01',1);DC16(10,60,'TVOC:100.0ppm',14);\r\n";
 
 void usart_lcd_display(void)
 {
@@ -389,7 +389,7 @@ char* usart_lcd_display_TVOC(float rh, LCD *plcd, unsigned char bcolor, unsigned
 				*(psrc+2) = buff[0];
 				*(psrc+3) = buff[1];
 				*(psrc+4) = buff[2];
-			}else if(2==i)
+			}else
 			{
 				*psrc = '0';
 				*(psrc+1) = '0';
@@ -544,7 +544,7 @@ char* usart_lcd_display_airq(TVOC_PPM_STATUS status, LCD *plcd, unsigned char bc
 			}else if(TVOC_PPM_02==status)
 			{
 				copy_string(psrc, (char *)AIR_SO_BAD, sizeof(AIR_SO_BAD)-1);
-			}else if(TVOC_PPM_03==status)
+			}else if(status>=TVOC_PPM_03)
 			{
 				copy_string(psrc, (char *)AIR_SOO_BAD, sizeof(AIR_SOO_BAD)-1);
 			}else

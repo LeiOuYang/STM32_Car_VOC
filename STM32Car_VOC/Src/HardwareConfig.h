@@ -8,6 +8,7 @@
 	#include "KQM28xx.h"
 	#include "DHT11.h"
 	#include "usart_lcd.h"
+	#include "NMEA0183.h"
 	
 	/* led io conifg */
 	

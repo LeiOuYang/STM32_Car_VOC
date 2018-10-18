@@ -4,11 +4,11 @@
 
 #include "KQM28xx.h"
 
-#define SPEED_DISPLAY "SBC(CC);DCV32(30,20,'XXXkm/s', FF);\r\n"
-#define TEMP_DISPLAY "SBC(CC);DCV24(10,75,'XXXX¡æ',FF);\r\n"
+#define SPEED_DISPLAY "SBC(CC);DCV32(30,25,'XXXkm/s', FF);\r\n"
+#define TEMP_DISPLAY "SBC(CC);DCV24(10,77,'XXXX¡æ',FF);\r\n"
 #define RH_DISPLAY	"SBC(CC);DCV24(10,100,'XX%',FF);\r\n"
-#define TVOC_DISPLAY "SBC(CC);DCV16(10,55,'TVOC:XXXXXppm',FF);\r\n"
-#define GPS_DISPLAY "SBC(CC);DCV16(10,0,'XX',FF);\r\n"
+#define TVOC_DISPLAY "SBC(CC);DCV16(10,60,'TVOC:XXXXXppm',FF);\r\n"
+#define GPS_DISPLAY "SBC(CC);DCV16(10,20,'XX',FF);\r\n"
 #define AIR_DISPLAY "SBC(CC);DCV16(95,85,'XXXXXX',FF);\r\n"
 #define ERROR_DISPLAY "SBC(CC);DCV16(95,110,'ERROR:XX',FF)\r\n"
 
