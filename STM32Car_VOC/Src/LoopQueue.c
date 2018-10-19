@@ -64,6 +64,8 @@ int insertCharLoopQueue( LoopQueue* loopQueue, unsigned char value )					//inser
 	loopQueue->data[loopQueue->rear] = value;
 	loopQueue->rear = (loopQueue->rear + 1) % loopQueue->length;
 	loopQueue->realLen++;
+	if(loopQueue->realLen==loopQueue->length+1)
+		loopQueue->realLen = 0;
 	return 1;
 	
 }
@@ -79,7 +81,9 @@ unsigned char readCharLoopQueue( LoopQueue* loopQueue )					//read element in qu
 	
 	uc = loopQueue->data[loopQueue->front];
 	loopQueue->front = (loopQueue->front+1) % loopQueue->length;
-	loopQueue->realLen--;
+	if(loopQueue->realLen)
+		loopQueue->realLen--;
+		
 	return uc;		
 }
 

@@ -202,7 +202,7 @@ bool get_nmea_frame(char usartC, char* frame, unsigned int* cou)
 	static unsigned char flag = NMEA_NO;	
 	static unsigned int count = 0;				
 	static char crc[2];
-	static unsigned int crcSum;
+	static unsigned int crcSum = 0;
 	
 	if(0==frame) return false;
 		
@@ -233,6 +233,7 @@ bool get_nmea_frame(char usartC, char* frame, unsigned int* cou)
 				count = 0;
 				crc[0] = crc[1] = 0;
 				crcSum = 0;
+				*cou = 0;
 			}
 			break;
 		}

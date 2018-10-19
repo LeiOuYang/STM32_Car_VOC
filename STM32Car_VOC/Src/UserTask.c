@@ -466,7 +466,7 @@ static void usart3_receive_task(void const* arg)
 	
 	while(1)
 	{
-		osDelay(20);
+		osDelay(40);
 		data_len = readBuffLen(USART3_ID); /* 读取串口3缓冲队列中的数据长度 */
 		if(data_len>0)
 		{
@@ -482,10 +482,9 @@ static void usart3_receive_task(void const* arg)
 					nema_message_parse(nmea_buff, get_gps_message(), gpscount); //对一帧数据进行解析
 					count = 0;
 					xSemaphoreGive(mutex_read_gps);
-				}else
-				{
-					++count;
+					break;
 				}
+				++count;
 			}
 		}else if(0==data_len)
 		{
