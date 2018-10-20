@@ -28,8 +28,8 @@ void app_run(void)
 	osThreadCreate(osThread(RGBBlinkThread), NULL);
 	
 	/* 开启更新显示OLED显示屏幕 */
-//	osThreadDef(OledTask, update_oled_task, osPriorityIdle, 0, 128);
-//	osThreadCreate(osThread(OledTask), NULL);	
+	osThreadDef(OledTask, update_oled_task, osPriorityIdle, 0, 128);
+	osThreadCreate(osThread(OledTask), NULL);	
 
 	/* 蜂鸣器鸣叫任务 */
 	osThreadDef(BeepBlinkThread, beep_task, osPriorityIdle, 0, 128);
@@ -39,22 +39,22 @@ void app_run(void)
 	osThreadDef(UART1RXTask, usart1_receive_task, osPriorityBelowNormal, 0, 256);
 	osThreadCreate(osThread(UART1RXTask), NULL);
 	/* 串口2接收数据处理任务 */
-	osThreadDef(UART2RXTask, usart2_receive_task, osPriorityLow, 0, 256);
-	osThreadCreate(osThread(UART2RXTask), NULL);
+//	osThreadDef(UART2RXTask, usart2_receive_task, osPriorityLow, 0, 256);
+//	osThreadCreate(osThread(UART2RXTask), NULL);
 	/* 串口3接收数据处理任务 */
 	osThreadDef(UART3RXTask, usart3_receive_task, osPriorityLow, 0, 512+128);
 	osThreadCreate(osThread(UART3RXTask), NULL);
 	
 	/* 串口1发送处理任务 */
-	osThreadDef(UART1TXTask, usart1_send_task, osPriorityBelowNormal, 0, 256);
-	osThreadCreate(osThread(UART1TXTask), NULL);
+//	osThreadDef(UART1TXTask, usart1_send_task, osPriorityBelowNormal, 0, 256);
+//	osThreadCreate(osThread(UART1TXTask), NULL);
 	/* 串口2发送数据处理任务 */
 	osThreadDef(UART2TXTask, usart2_send_task, osPriorityNormal, 0, 512+128);
 	osThreadCreate(osThread(UART2TXTask), NULL);
 	
 	/* DHT11数据处理任务 */
-//	osThreadDef(DHT11Task, dht11_process_task, osPriorityRealtime, 0, 256);
-//	osThreadCreate(osThread(DHT11Task), NULL);
+	osThreadDef(DHT11Task, dht11_process_task, osPriorityRealtime, 0, 128);
+	osThreadCreate(osThread(DHT11Task), NULL);
 	
 	/* 按键队列处理任务 */
 	osThreadDef(ButtonTask, button_event_task, osPriorityHigh, 0, 128);
@@ -273,6 +273,7 @@ static void usart1_receive_task(void const* arg)
 	while(1)
 	{
 		osDelay(20);
+		restart_usart(&huart1);
 		data_len = readBuffLen(USART1_ID); /* 读取串口1缓冲队列中的数据长度 */
 		if(data_len>0)
 		{
@@ -441,6 +442,7 @@ static void usart2_receive_task(void const* arg)
 	while(1)
 	{
 		osDelay(30);
+		restart_usart(&huart2);
 		data_len = readBuffLen(USART2_ID); /* 读取串口1缓冲队列中的数据长度 */
 		if(data_len>0)
 		{
@@ -467,6 +469,7 @@ static void usart3_receive_task(void const* arg)
 	while(1)
 	{
 		osDelay(40);
+		restart_usart(&huart3);
 		data_len = readBuffLen(USART3_ID); /* 读取串口3缓冲队列中的数据长度 */
 		if(data_len>0)
 		{
@@ -803,27 +806,49 @@ void button_event_task(void const* arg)
 }
 /* function code end */ 
 
+static void restart_usart(UART_HandleTypeDef *huart)
+{
+	if(huart==0) return;
+	
+	if(huart->ErrorCode |= HAL_UART_ERROR_ORE!=RESET)
+	{
+		huart->ErrorCode = HAL_UART_ERROR_NONE;
+		huart->RxState = HAL_UART_STATE_BUSY_RX;
+		
+		SET_BIT(huart->Instance->CR1, (USART_CR1_RXNEIE | USART_CR1_PEIE));
+		SET_BIT(huart->Instance->CR3, USART_CR3_EIE);
+
+		/* Process Unlocked */
+		__HAL_UNLOCK(huart);
+
+		/* Enable the UART Parity Error Interrupt */
+		__HAL_UART_ENABLE_IT(huart, UART_IT_PE);
+
+		/* Enable the UART Error Interrupt: (Frame error, noise error, overrun error) */
+		__HAL_UART_ENABLE_IT(huart, UART_IT_ERR);
+
+		/* Enable the UART Data Register not empty Interrupt */
+		__HAL_UART_ENABLE_IT(huart, UART_IT_RXNE);
+		return;
+	}
+}
+
 /* 初始化串口接收中断 */
 static void initUsartIT(UART_HandleTypeDef *huart)
 {
-	if(huart==0) return;
+		huart->ErrorCode = HAL_UART_ERROR_NONE;
+		huart->RxState = HAL_UART_STATE_BUSY_RX;
+			/* Process Unlocked */
+		__HAL_UNLOCK(huart);
 
-	huart->ErrorCode = HAL_UART_ERROR_NONE;
-	huart->RxState = HAL_UART_STATE_BUSY_RX;
+		/* Enable the UART Parity Error Interrupt */
+		__HAL_UART_ENABLE_IT(huart, UART_IT_PE);
 
-	/* Process Unlocked */
-	__HAL_UNLOCK(huart);
+		/* Enable the UART Error Interrupt: (Frame error, noise error, overrun error) */
+		__HAL_UART_ENABLE_IT(huart, UART_IT_ERR);
 
-	/* Enable the UART Parity Error Interrupt */
-	__HAL_UART_ENABLE_IT(huart, UART_IT_PE);
-
-	/* Enable the UART Error Interrupt: (Frame error, noise error, overrun error) */
-	__HAL_UART_ENABLE_IT(huart, UART_IT_ERR);
-
-	/* Enable the UART Data Register not empty Interrupt */
-	__HAL_UART_ENABLE_IT(huart, UART_IT_RXNE);
-	
-	return;
+		/* Enable the UART Data Register not empty Interrupt */
+		__HAL_UART_ENABLE_IT(huart, UART_IT_RXNE);
 }
 
 /* 更新传感器标志 */

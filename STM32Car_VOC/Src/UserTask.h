@@ -77,6 +77,8 @@
 	static void sensor_error_display(void);
 	static void button_event_task(void const* arg);
 	
+	static void restart_usart(UART_HandleTypeDef *huart);
+	
 	
 	extern IWDG_HandleTypeDef hiwdg;
 	extern UART_HandleTypeDef huart1;

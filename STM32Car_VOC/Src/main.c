@@ -65,6 +65,7 @@ UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
 DMA_HandleTypeDef hdma_usart1_tx;
 DMA_HandleTypeDef hdma_usart2_tx;
+DMA_HandleTypeDef hdma_usart3_tx;
 
 osThreadId defaultTaskHandle;
 
@@ -150,8 +151,8 @@ int main(void)
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
-  defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+//  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+//  defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -246,10 +247,10 @@ static void MX_NVIC_Init(void)
   HAL_NVIC_SetPriority(EXTI1_IRQn, 6, 0);
   HAL_NVIC_EnableIRQ(EXTI1_IRQn);
   /* DMA1_Channel4_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel4_IRQn, 9, 0);
+  HAL_NVIC_SetPriority(DMA1_Channel4_IRQn, 7, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel4_IRQn);
   /* DMA1_Channel7_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel7_IRQn, 9, 0);
+  HAL_NVIC_SetPriority(DMA1_Channel7_IRQn, 8, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel7_IRQn);
   /* USART1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(USART1_IRQn, 7, 0);
@@ -258,11 +259,14 @@ static void MX_NVIC_Init(void)
   HAL_NVIC_SetPriority(USART2_IRQn, 8, 0);
   HAL_NVIC_EnableIRQ(USART2_IRQn);
   /* TIM2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(TIM2_IRQn, 6, 0);
+  HAL_NVIC_SetPriority(TIM2_IRQn, 9, 0);
   HAL_NVIC_EnableIRQ(TIM2_IRQn);
   /* USART3_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(USART3_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(USART3_IRQn);
+  /* DMA1_Channel2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 6, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
 }
 
 /* IWDG init function */
