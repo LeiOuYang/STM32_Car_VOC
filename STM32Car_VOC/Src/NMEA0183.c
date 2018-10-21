@@ -3,16 +3,16 @@
 *** 		GNSS NEMA0183数据解析，支持对：RMC、GSV、GLL、TVS、GGA、GSA数据包的解析	
 ***			库函数调用示例如下：
 ***       char buff[];  //该缓冲区中存有协议数据
-***       unsigned int count = 0;  //定义存储帧数据的个数
-***				init_gps_message(get_gps_message()); //初始化库内部定义的gps_message
-***       for(int i=0; i<val_count; ++i)  //val_count表示缓冲区中有效数据个数
-***				{			
-***     		if(get_nmea_frame(buff, nmea_buff, &gpscount) //按字符解析，如果得到一帧数据，则为真
+***       char nmea_buff[]; //存储一帧NMEA数据 
+***       unsigned int count = 0;              //定义存储帧数据的个数
+***		  init_gps_message(get_gps_message()); //初始化库内部定义的gps_message
+***       for(int i=0; i<count; ++i)  		   //count表示缓冲区中有效数据个数
+***		  {			
+***     	if(get_nmea_frame(buff[i], &nmea_buff[0], &count) //按字符解析，如果得到一帧数据，则为真
 ***       	{
-***						nema_message_parse(nmea_buff, get_gps_message(), gpscount); //对一帧数据进行解析
-***					}
-***					++buff;
-***				}
+***				nema_message_parse(nmea_buff[], get_gps_message(), count); //对一帧数据进行解析
+***			}
+***		  }
 ***       解析成功后，可通过调用内置的gpsMsg、gpgsv、gbgsv、gbgsv，获取定位信息和卫星状态
 *** 
 ***
@@ -22,6 +22,7 @@
 
 
 #include "NMEA0183.h"
+#include <stdio.h>
 
 char nmea_buff[NMEA0183_FRAME_MAX_LEN] = {0};   //一帧数据缓冲区，供外部调用
 gps_message gpsMsg; //全局gps数据信息
@@ -309,7 +310,7 @@ void nema_message_parse(char* frame, gps_message* pos, unsigned int len)
 		
 	}else if(!strcmp(msg,GPGSV) || !strcmp(msg,GNGSV) || !strcmp(msg,GLGSV) || !strcmp(msg,GBGSV ))
 	{
-		gsv_parse(frame, pos, len); //GSV
+//		gsv_parse(frame, pos, len); //GSV,测试发现问题 
 		
 	}else if(!strcmp(msg,GPRMC) || !strcmp(msg,GNRMC) || !strcmp(msg,GLRMC) || !strcmp(msg,GBRMC))	
 	{
@@ -693,6 +694,7 @@ void gga_parse(char* frame, gps_message* pos, unsigned int len)
 					{
 						case 'P':
 						{
+							pos->use_satellite_count = (buff[0]-0x30)*10+buff[1]-0x30;
 							break;
 						}
 						case 'L':
@@ -942,21 +944,32 @@ void vtg_parse(char* frame, gps_message* pos, unsigned int len)
 					
 				}else if(6==count) //字段6 速度单位 N=节 Knots
 				{
+					
+				}else if(7==count) //字段7 水平运动速度0.00
+				{
 					unsigned char t = 0;
+					char y = -1;
+					unsigned char dotflag = 0;
+					float xiaoshu = 0.0;
 					pos->groundSpeed = 0;
 					for( t=0; '\0'!=buff[t]; ++t)
 					{
 						if('.'==buff[t])
 						{
-							pos->groundSpeed += (buff[t]-'0')*0.1;
-							break;
+							dotflag = 1;
+							continue;
+						}
+						if(dotflag)
+						{
+							xiaoshu += (buff[t]-'0')*pow(10,y);
+							--y;
+							if(y<-3)
+								break;
+							continue;
 						}
 						pos->groundSpeed += (buff[t]-'0')*pow(10,t);
 					}
-					
-				}else if(7==count) //字段7 水平运动速度0.00
-				{
-					
+					pos->groundSpeed += xiaoshu;					
 				}
 		  }
 			index = 0;		
