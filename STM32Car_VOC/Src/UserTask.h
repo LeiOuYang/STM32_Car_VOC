@@ -77,8 +77,13 @@
 	static void sensor_error_display(void);
 	static void button_event_task(void const* arg);
 	
+	static void task_50ms(void const* arg);
+	
 	static void restart_usart(UART_HandleTypeDef *huart);
 	
+	static void run_led_fun(void);
+	static void feed_dog_fun(void);
+	static void beep_fun(void);
 	
 	extern IWDG_HandleTypeDef hiwdg;
 	extern UART_HandleTypeDef huart1;

@@ -16,25 +16,17 @@ void app_run(void)
 {
 	init_system();
 	/* 喂狗任务 */
-	osThreadDef(FeedDogThread, feed_dog_task, osPriorityIdle, 0, 128);
-	osThreadCreate(osThread(FeedDogThread), NULL);	
-	
-	/* led闪烁任务 */
-	osThreadDef(LedBlinkThread, led_blink_task, osPriorityIdle, 0, 128);
-	osThreadCreate(osThread(LedBlinkThread), NULL);	
+	osThreadDef(Task50MSThread, task_50ms, osPriorityIdle, 0, 128);
+	osThreadCreate(osThread(Task50MSThread), NULL);	
 	
 	/* RGB闪烁任务 */
 	osThreadDef(RGBBlinkThread, rgb_blink_task, osPriorityIdle, 0, 128);
 	osThreadCreate(osThread(RGBBlinkThread), NULL);
 	
 	/* 开启更新显示OLED显示屏幕 */
-	osThreadDef(OledTask, update_oled_task, osPriorityIdle, 0, 128);
-	osThreadCreate(osThread(OledTask), NULL);	
+//	osThreadDef(OledTask, update_oled_task, osPriorityIdle, 0, 128);
+//	osThreadCreate(osThread(OledTask), NULL);	
 
-	/* 蜂鸣器鸣叫任务 */
-	osThreadDef(BeepBlinkThread, beep_task, osPriorityIdle, 0, 128);
-	osThreadCreate(osThread(BeepBlinkThread), NULL);
-	
 	/* 串口1接收数据处理任务 */
 	osThreadDef(UART1RXTask, usart1_receive_task, osPriorityBelowNormal, 0, 256);
 	osThreadCreate(osThread(UART1RXTask), NULL);
@@ -49,7 +41,7 @@ void app_run(void)
 //	osThreadDef(UART1TXTask, usart1_send_task, osPriorityBelowNormal, 0, 256);
 //	osThreadCreate(osThread(UART1TXTask), NULL);
 	/* 串口2发送数据处理任务 */
-	osThreadDef(UART2TXTask, usart2_send_task, osPriorityNormal, 0, 512+128);
+	osThreadDef(UART2TXTask, usart2_send_task, osPriorityNormal, 0, 512+128+128);
 	osThreadCreate(osThread(UART2TXTask), NULL);
 	
 	/* DHT11数据处理任务 */
@@ -411,8 +403,13 @@ static void usart2_send_task(void const* arg)
 		HAL_UART_Transmit(&huart2, lcd.display_buff, strlen(lcd.display_buff), 150);
 		
 		osDelay(100);
-		usart_lcd_display_error(error++, &lcd,60, 1);
+		local_time(get_gps_utc_date_str(), get_gps_utc_time_str(), 8);
+		utc_time_display(&lcd, get_gps_utc_time_str(), get_gps_utc_date_str(), 60, 3);
 		HAL_UART_Transmit(&huart2, lcd.display_buff, strlen(lcd.display_buff), 150);
+		
+//		osDelay(100);
+//		usart_lcd_display_error(error++, &lcd,60, 1);
+//		HAL_UART_Transmit(&huart2, lcd.display_buff, strlen(lcd.display_buff), 150);
 	
 //		sendQueue = getUsartSendLoopQueue(USART2_ID); /* get send queue */
 //		if(sendQueue!=NULL)
@@ -650,6 +647,20 @@ static void update_oled_task(void const* arg)
 	}
 }
 /* function code end */
+
+/* 每50ms调用一次任务： LED、BEEP和喂狗操作 */
+static void task_50ms(void const* arg)
+{
+	while(1)
+	{
+		osDelay(50);
+		
+		run_led_fun();
+		beep_fun();
+		feed_dog_fun();
+	}
+}
+/* end the function */
 
 /* 初始化系统函数 */
 static void init_system(void)
@@ -906,6 +917,83 @@ static void sensor_error_display(void)
 		display_string_Font8_16(96, 6, "E3");
 	}
 }
+
+
+
+/* led 控制函数 50ms任务 */
+static void run_led_fun(void)
+{
+	static unsigned int step = 0;
+	
+	++step;
+	
+	switch(step)
+	{
+		case 1: 
+			set_run_led();
+			break;
+		case 2:
+			reset_run_led();
+			break;
+		default: break;
+	}
+	
+	if(21==step)
+	{
+		step = 0;
+	}
+}
+
+static void feed_dog_fun(void)
+{
+	static unsigned int step = 0;
+	
+	++step;
+	
+	if(2==step)
+	{
+		step = 0;
+		HAL_IWDG_Refresh(&hiwdg);
+		update_sensor_status();
+	}
+	
+}
+
+static void beep_fun(void)
+{
+	static unsigned int step = 0;
+		
+	if(!sys_flag.open_beep)
+	{
+		reset_beep();
+		step = 0;
+		return;
+	}
+	
+	if(sys_flag.tvoc_level>=TVOC_PPM_03 && p_air_sensor->init)
+	{
+		++step;
+		switch(step)
+		{
+			case 1:
+				set_beep();
+				break;
+			case 11:
+				reset_beep();
+				break;
+			default: break;
+		}
+		if(41==step)
+		{
+			step = 0;
+		}
+	}else 
+	{
+		step = 0;
+		reset_beep();
+	}
+}
+	
 
 
 /* function code end */

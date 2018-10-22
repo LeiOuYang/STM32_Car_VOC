@@ -4,13 +4,14 @@
 
 #include "KQM28xx.h"
 
-#define SPEED_DISPLAY "SBC(CC);DCV32(30,25,'XXXkm/s', FF);\r\n"
+#define SPEED_DISPLAY "SBC(CC);DCV32(30,25,'XXXXX', FF);\r\n"
 #define TEMP_DISPLAY "SBC(CC);DCV24(10,77,'XXXX¡æ',FF);\r\n"
 #define RH_DISPLAY	"SBC(CC);DCV24(10,100,'XX%',FF);\r\n"
 #define TVOC_DISPLAY "SBC(CC);DCV16(10,60,'TVOC:XXXXXppm',FF);\r\n"
 #define GPS_DISPLAY "SBC(CC);DCV16(10,20,'XX',FF);\r\n"
 #define AIR_DISPLAY "SBC(CC);DCV16(95,85,'XXXXXX',FF);\r\n"
-#define ERROR_DISPLAY "SBC(CC);DCV16(95,110,'ERROR:XX',FF)\r\n"
+#define ERROR_DISPLAY "SBC(CC);DCV16(95,110,'ERROR:XX',FF);\r\n"
+#define TIME_DISPLAY	"SBC(CC);DCV16(14,0,'XX:XX   XXXX-XX-XX',FF);\r\n"
 
 #define AIR_GOOD "Á¼ºÃ  "
 #define AIR_BAD "½Ï²î  "
@@ -33,6 +34,7 @@ char* usart_lcd_display_TVOC(float rh, LCD *plcd, unsigned char bcolor, unsigned
 char* usart_lcd_display_GPS(unsigned char num, LCD *plcd, unsigned char bcolor, unsigned char fcolor);
 char* usart_lcd_display_airq(TVOC_PPM_STATUS status, LCD *plcd, unsigned char bcolor, unsigned char fcolor);
 char* usart_lcd_display_error(unsigned char num, LCD *plcd, unsigned char bcolor, unsigned char fcolor);
+char* utc_time_display(LCD *plcd, char* gpstime, char* gpsdata, unsigned char bcolor, unsigned char fcolor);
 
 
 #endif
