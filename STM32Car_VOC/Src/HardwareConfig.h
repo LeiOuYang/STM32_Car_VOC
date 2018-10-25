@@ -32,12 +32,12 @@
 	#define RGB1_GLED(sw) HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, sw)
 	#define RGB1_BLED(sw) HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, sw)
 	
-	#define RGB1_Red() 		{ RGB1_RLED(1); RGB1_GLED(0); RGB1_BLED(0);}
-	#define RGB1_Green() 	{ RGB1_RLED(0); RGB1_GLED(1); RGB1_BLED(0);}
-	#define RGB1_Blue()		{ RGB1_RLED(0); RGB1_GLED(0); RGB1_BLED(1);}
-	#define RGB1_Close()	{ RGB1_RLED(0); RGB1_GLED(0); RGB1_BLED(0);}
-	#define RGB1_Yellow()	{ RGB1_RLED(1); RGB1_GLED(1); RGB1_BLED(0);}
-	#define RGB1_Purple() { RGB1_RLED(1); RGB1_GLED(1); RGB1_BLED(1);}
+	#define RGB1_Red() 		{ RGB1_RLED((GPIO_PinState)1); RGB1_GLED((GPIO_PinState)0); RGB1_BLED((GPIO_PinState)0);}
+	#define RGB1_Green() 	{ RGB1_RLED((GPIO_PinState)0); RGB1_GLED((GPIO_PinState)1); RGB1_BLED((GPIO_PinState)0);}
+	#define RGB1_Blue()		{ RGB1_RLED((GPIO_PinState)0); RGB1_GLED((GPIO_PinState)0); RGB1_BLED((GPIO_PinState)1);}
+	#define RGB1_Close()	{ RGB1_RLED((GPIO_PinState)0); RGB1_GLED((GPIO_PinState)0); RGB1_BLED((GPIO_PinState)0);}
+	#define RGB1_Yellow()	{ RGB1_RLED((GPIO_PinState)1); RGB1_GLED((GPIO_PinState)1); RGB1_BLED((GPIO_PinState)0);}
+	#define RGB1_Purple() { RGB1_RLED((GPIO_PinState)1); RGB1_GLED((GPIO_PinState)1); RGB1_BLED((GPIO_PinState)1);}
 	
 	/* end RGB1 */
 	
@@ -46,12 +46,12 @@
 	#define RGB2_GLED(sw) HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, sw)
 	#define RGB2_BLED(sw) HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, sw)
 	
-	#define RGB2_Red() 		{ RGB2_RLED(1); RGB2_GLED(0); RGB2_BLED(0);}
-	#define RGB2_Green() 	{ RGB2_RLED(0); RGB2_GLED(1); RGB2_BLED(0);}
-	#define RGB2_Blue()		{ RGB2_RLED(0); RGB2_GLED(0); RGB2_BLED(1);}
-	#define RGB2_Close() 	{ RGB2_RLED(0); RGB2_GLED(0); RGB2_BLED(0);}
-	#define RGB2_Yellow()	{ RGB2_RLED(1); RGB2_GLED(1); RGB2_BLED(0);}
-	#define RGB2_Purple() { RGB2_RLED(1); RGB2_GLED(1); RGB2_BLED(1);}
+	#define RGB2_Red() 		{ RGB2_RLED((GPIO_PinState)1); RGB2_GLED((GPIO_PinState)0); RGB2_BLED((GPIO_PinState)0);}
+	#define RGB2_Green() 	{ RGB2_RLED((GPIO_PinState)0); RGB2_GLED((GPIO_PinState)1); RGB2_BLED((GPIO_PinState)0);}
+	#define RGB2_Blue()		{ RGB2_RLED((GPIO_PinState)0); RGB2_GLED((GPIO_PinState)0); RGB2_BLED((GPIO_PinState)1);}
+	#define RGB2_Close() 	{ RGB2_RLED((GPIO_PinState)0); RGB2_GLED((GPIO_PinState)0); RGB2_BLED((GPIO_PinState)0);}
+	#define RGB2_Yellow()	{ RGB2_RLED((GPIO_PinState)1); RGB2_GLED((GPIO_PinState)1); RGB2_BLED((GPIO_PinState)0);}
+	#define RGB2_Purple() { RGB2_RLED((GPIO_PinState)1); RGB2_GLED((GPIO_PinState)1); RGB2_BLED((GPIO_PinState)1);}
 
 	/* end RGB2 */
 	

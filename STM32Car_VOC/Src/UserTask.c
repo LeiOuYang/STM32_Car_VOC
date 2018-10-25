@@ -1,12 +1,7 @@
 
 #include "UserTask.h"
 
-//static osThreadId feed_dog_task_handle;
-//static osThreadId led_blink_task_handle;
-//static osThreadId rgb_blink_task_handle;
-//static osThreadId beep_task_handle;
-
-static system_flag sys_flag = { 0,0,0,0,0,1,1,0,0,0,0};
+static system_flag sys_flag = { 0,0,0,(TVOC_PPM_STATUS)0,0,1,1,0,0,0,0};
 xQueueHandle button_event_queue;
 extern const unsigned char chinese16_16[][32];
 static DHT11 dht11;
@@ -55,7 +50,7 @@ void app_run(void)
 }
 
 /* 温湿度数据处理 */
-static void dht11_process_task(void* arg)
+static void dht11_process_task(void const* arg)
 {
 	unsigned char count = 0;
 	osDelay(1500);  /* 延时1.5S等待模块稳定 */
@@ -65,7 +60,6 @@ static void dht11_process_task(void* arg)
 	{
 		if( !dht11.reading )  
 		{
-//			DHT11_read_data(&dht11);
 			if( !DHT11_read_data(&dht11) )
 			{
 				++count;
@@ -81,12 +75,7 @@ static void dht11_process_task(void* arg)
 				count = 0;	
 				sys_flag.sensor_healthy |= SENSOR_DHT11_HEALTHY;
 			}
-		}
-			
-//		xSemaphoreTake( mutex_usart2_tx, portMAX_DELAY );	
-//		usart_lcd_display();
-//		xSemaphoreGive(mutex_usart2_tx);
-			
+		}			
 		osDelay(3000);  /* 每2秒读取一次温湿度数据 */
 	}	
 }
@@ -122,7 +111,6 @@ static void led_blink_task(void const* arg)
 static void rgb_blink_task(void const* arg)
 {
 	unsigned int step = 0;
-	unsigned int count = 0;
 	
 	RGB1_Close();
 	RGB2_Close();
@@ -283,8 +271,6 @@ static void usart1_receive_task(void const* arg)
 					sys_flag.tvoc_level = p_air_sensor->convert_level((unsigned int)(p_air_sensor->air_ppm*10));
 					sys_flag.tvoc_ppm = (unsigned char)p_air_sensor->air_ppm;
 					sys_flag.oled_update_area |= OLED_UPDATE_AREA_AIR_YES;
-					
-//					write(USART2_ID, &buff[0], data_len);
 				}
 			}
 		}else if(0==data_len)
@@ -310,7 +296,6 @@ static void usart1_send_task(void const* arg)
 		
 		xSemaphoreTake( mutex_usart1_tx, portMAX_DELAY );		
 
-		//HAL_UART_Transmit_DMA(&huart1, (uint8_t *)send_buff, (uint16_t)data_len); /* DMA send	*/		
 		xSemaphoreGive(mutex_usart1_tx);
 	}
 }
@@ -319,16 +304,12 @@ static void usart1_send_task(void const* arg)
 /* 串口2发送任务 */
 static void usart2_send_task(void const* arg)
 {
-	uint16_t data_len = 0;
-	LoopQueue* sendQueue;
-	char send_buff[300];
-	unsigned char error = 0;
 	unsigned char fcolor = 10;
 
 	osDelay(2000);
-	HAL_UART_Transmit_DMA(&huart2, get_lcd_str(), strlen(get_lcd_str()));
+	HAL_UART_Transmit_DMA(&huart2, (uint8_t*)get_lcd_str(), strlen(get_lcd_str()));
 	osDelay(1000);
-	HAL_UART_Transmit_DMA(&huart2, get_lcd_str(), strlen(get_lcd_str()));
+	HAL_UART_Transmit_DMA(&huart2, (uint8_t*)get_lcd_str(), strlen(get_lcd_str()));
 	
 	while(1)
 	{
@@ -416,27 +397,6 @@ static void usart2_send_task(void const* arg)
 			utc_time_display(&lcd, get_gps_utc_time_str(), get_gps_utc_date_str(), 60, 3);
 			HAL_UART_Transmit_DMA(&huart2, (uint8_t *)lcd.display_buff, strlen(lcd.display_buff));
 		xSemaphoreGive(mutex_read_gps);
-		
-//		osDelay(100);
-//		usart_lcd_display_error(error++, &lcd,60, 1);
-//		HAL_UART_Transmit(&huart2, lcd.display_buff, strlen(lcd.display_buff), 150);
-	
-//		sendQueue = getUsartSendLoopQueue(USART2_ID); /* get send queue */
-//		if(sendQueue!=NULL)
-//		{		
-//			data_len = writeBuffLen(USART2_ID); /* send queue data count */
-//			if(data_len>0)
-//			{
-//				unsigned int i = 0;
-//				if(data_len>256) data_len=256;
-//				for( i=0; i<data_len; ++i)
-//				{
-//					send_buff[i] = readCharLoopQueue(sendQueue);
-//				}
-//				HAL_UART_Transmit_DMA(&huart2, (uint8_t *)send_buff, (uint16_t)data_len); /* DMA send	*/
-//			}
-//		}		
-//		xSemaphoreGive(mutex_usart2_tx);
 	}
 }
 /* function code end */
@@ -455,9 +415,6 @@ static void usart2_receive_task(void const* arg)
 		{
 			if(data_len>128) data_len = 128;			
 			read(USART2_ID, &buff[0], data_len);
-			
-			/* 解析数据 */
-			//write(USART2_ID, &buff[0], data_len);
 		}
 	}
 }
@@ -522,8 +479,6 @@ static void usart3_send_task(void const* arg)
 	while(1)
 	{
 		osDelay(50);	
-
-		//HAL_UART_Transmit(&huart1, "Hello World-1\n", sizeof("Hello World-1\n"), 1000);
 		
 		xSemaphoreTake( mutex_usart1_tx, portMAX_DELAY );		
 		sendQueue = getUsartSendLoopQueue(USART1_ID); /* get send queue */

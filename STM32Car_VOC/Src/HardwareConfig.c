@@ -61,7 +61,7 @@ BUTTON_STATUS button_exti_callback(ButtonId id)
 		}
 	}
 	
-	return bt->status;
+	return (BUTTON_STATUS)bt->status;
 }
 
 Button* get_button_by_id(ButtonId id)

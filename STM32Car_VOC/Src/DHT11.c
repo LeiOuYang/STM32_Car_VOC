@@ -40,6 +40,7 @@ void DHT11_io_out_config(DHT11* pdht)
 unsigned char DHT11_start(DHT11* dht)
 {
 	unsigned int timeout = 0;
+	unsigned int start_time = 0;
 	
 	dht->valid = 0;
 	dht->reading = 0;
@@ -53,35 +54,42 @@ unsigned char DHT11_start(DHT11* dht)
 	osDelay(20);
 	
 	/* 拉高电平20us */
-//	HAL_GPIO_WritePin(dht->GPIOx, dht->GPIO_Pin, GPIO_PIN_SET);
 	DHT11_io_in_config(dht);
 	delay10us(3ul);
 		
 	/* 等待DHT11模块应答信号 */
-	timeout = 50000;
+	timeout = 5;
+	start_time = HAL_GetTick();
 	while( HAL_GPIO_ReadPin(dht->GPIOx, dht->GPIO_Pin) )
 	{
-		--timeout;
-		if(!timeout) return 0;
+		if(DHT11_timeout(start_time, timeout))
+		{
+			return 0;
+		}
 	}
 	
 	/* DHT11应答信号80us */
-	timeout = 50000;
+	timeout = 5;
 	delay10us(1ul);
+	start_time = HAL_GetTick();
 	while( !HAL_GPIO_ReadPin(dht->GPIOx, dht->GPIO_Pin) )
 	{
-		--timeout;
-		if(!timeout) return 0;
+		if(DHT11_timeout(start_time, timeout))
+		{
+			return 0;
+		}
 	}
 	
 	/* DHT11拉高准备 */
-	timeout = 50000;
+	timeout = 5;
 	delay10us(1ul);
+	start_time = HAL_GetTick();
 	while( HAL_GPIO_ReadPin(dht->GPIOx, dht->GPIO_Pin) )
 	{
-		--timeout;
-		if(!timeout) 
+		if(DHT11_timeout(start_time, timeout))
+		{
 			return 0;
+		}
 	}
 
 	return 1;
@@ -91,22 +99,25 @@ unsigned char DHT11_start(DHT11* dht)
 unsigned char DHT11_read_data(DHT11* dht)
 {
 	unsigned char t = 0;
+	
 	t = DHT11_start(dht);
+	
 	if( t )
 	{
 		unsigned char count = 0;
 		unsigned char timeout = 0;
 		unsigned char temp = 0;
-//		taskENTER_CRITICAL();
+		unsigned int start_time = 0;
+
 		for(count=0; count<40; ++count)
 		{
 			/* 等待低电平变成高电平 */
-			timeout = 50000;
+			timeout = 5;
 			delay10us(1ul);
+			start_time = HAL_GetTick();
 			while( !HAL_GPIO_ReadPin(dht->GPIOx, dht->GPIO_Pin) )
 			{
-				--timeout;
-				if(!timeout)
+				if(DHT11_timeout(start_time, timeout))
 				{					
 					dht->valid = 0;
 					return 0;
@@ -123,11 +134,11 @@ unsigned char DHT11_read_data(DHT11* dht)
 				temp = 1;
 				
 				/* 等待高电平变成低电平 */
-				timeout = 50000;
+				timeout = 5;
+				start_time = HAL_GetTick();
 				while( HAL_GPIO_ReadPin(dht->GPIOx, dht->GPIO_Pin) )
 				{
-					--timeout;
-					if(!timeout)
+					if(DHT11_timeout(start_time, timeout))
 					{					
 						dht->valid = 0;
 						return 0;
@@ -136,18 +147,17 @@ unsigned char DHT11_read_data(DHT11* dht)
 			}
 			dht->data[count/8] = ((dht->data[count/8])<<1)|temp;	
 		}
-		timeout = 50000;
+		timeout = 5;
+		start_time = HAL_GetTick();
 		while( !HAL_GPIO_ReadPin(dht->GPIOx, dht->GPIO_Pin) )
 		{
-			--timeout;
-			if(!timeout)
+			if(DHT11_timeout(start_time, timeout))
 			{					
 				dht->valid = 0;
 				return 0;
 			}
 		}
 		
-//		taskEXIT_CRITICAL();
 		if((dht->data[0]+dht->data[1]+dht->data[2]+dht->data[3])==(dht->data[4]))
 		{
 			dht->valid = 1;
@@ -176,6 +186,22 @@ extern void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		if(0!=system_time) 
 			--system_time;
 	}
+}
+
+static unsigned char DHT11_timeout(unsigned int Tickstart, unsigned int Timeout)
+{
+	/* Check for the Timeout */
+	if(Timeout != HAL_MAX_DELAY)
+	{
+		if((Timeout == 0U)||((HAL_GetTick() - Tickstart ) > Timeout))
+		{        
+			return 1;
+		}
+		else 
+			return 0;
+		
+	}else
+		return 0;
 }
 
 

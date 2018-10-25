@@ -71,7 +71,7 @@
 	static void usart3_receive_task(void const* arg);
 	static void usart3_send_task(void const* arg);
 	static void update_oled_task(void const* arg);
-	static void dht11_process_task(void* arg);
+	static void dht11_process_task(void const* arg);
 	
 	static void update_sensor_status(void);
 	static void sensor_error_display(void);

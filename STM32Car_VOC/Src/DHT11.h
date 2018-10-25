@@ -46,6 +46,7 @@ unsigned char DHT11_start(DHT11* dht);
 unsigned char DHT11_read_data(DHT11* dht);
 void delay10us(unsigned int time);
 extern void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
+static unsigned char DHT11_timeout(unsigned int Tickstart, unsigned int Timeout);
 
 #endif
 

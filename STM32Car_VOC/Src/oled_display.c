@@ -321,7 +321,7 @@ void display_num_font16_16_char(unsigned char x,unsigned char y,unsigned char ch
 
 void display_chinese_font16_16(unsigned char x,unsigned char y,unsigned char* pdata)
 {
-	unsigned char c=0,i=0;	
+	unsigned char i=0;	
 	if(0==pdata) return;
 
 	if(x>Max_Column-1)  //超过最大列
