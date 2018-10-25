@@ -498,6 +498,11 @@
               <FileType>1</FileType>
               <FilePath>../Src/stm32f1xx_hal_msp.c</FilePath>
             </File>
+            <File>
+              <FileName>Air530.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\Air530.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

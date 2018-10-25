@@ -694,7 +694,7 @@ void gga_parse(char* frame, gps_message* pos, unsigned int len)
 					{
 						case 'P':
 						{
-							pos->use_satellite_count = (buff[0]-0x30)*10+buff[1]-0x30;
+							//pos->use_satellite_count = (buff[0]-0x30)*10+buff[1]-0x30;
 							break;
 						}
 						case 'L':
