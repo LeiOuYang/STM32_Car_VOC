@@ -708,7 +708,7 @@ void gga_parse(char* frame, gps_message* pos, unsigned int len)
 						}
 						case 'N':
 						{
-							pos->use_satellite_count = (buff[0]-0x30)*10+buff[1]-0x30;  
+							pos->use_satellite_count = (buff[0]-'0')*10+buff[1]-'0';  
 							break;
 						}
 						default: break;
@@ -1032,6 +1032,7 @@ void set_gps_altitude_str(char* str, unsigned int len)
 char* get_gps_utc_date_str(void)
 {
 	static char date[]={"DDMMYY"};
+	//static char date[]={"211018"};
 	
 	return &date[0];
 }
