@@ -11,7 +11,7 @@ void app_run(void)
 {
 	init_system();
 	/* 喂狗任务 */
-	osThreadDef(Task50MSThread, task_50ms, osPriorityIdle, 0, 128);
+	osThreadDef(Task50MSThread, task_50ms, osPriorityIdle, 0, 256);
 	osThreadCreate(osThread(Task50MSThread), NULL);	
 	
 	/* RGB闪烁任务 */
@@ -40,11 +40,11 @@ void app_run(void)
 	osThreadCreate(osThread(UART2TXTask), NULL);
 	
 	/* DHT11数据处理任务 */
-	osThreadDef(DHT11Task, dht11_process_task, osPriorityRealtime, 0, 128);
+	osThreadDef(DHT11Task, dht11_process_task, osPriorityRealtime, 0, 256);
 	osThreadCreate(osThread(DHT11Task), NULL);
 	
 	/* 按键队列处理任务 */
-	osThreadDef(ButtonTask, button_event_task, osPriorityHigh, 0, 128);
+	osThreadDef(ButtonTask, button_event_task, osPriorityHigh, 0, 128+64);
 	osThreadCreate(osThread(ButtonTask), NULL);	
 	
 }
@@ -305,16 +305,23 @@ static void usart1_send_task(void const* arg)
 static void usart2_send_task(void const* arg)
 {
 	unsigned char fcolor = 10;
+	unsigned char bcolor = 60;
+	unsigned int step = 0;
 
 	osDelay(2000);
+	HAL_UART_Transmit_DMA(&huart2, "CLR(60);\r\n", strlen("CLR(18);\r\n"));
+	osDelay(500);	
 	HAL_UART_Transmit_DMA(&huart2, (uint8_t*)get_lcd_str(), strlen(get_lcd_str()));
 	osDelay(1000);
+	HAL_UART_Transmit_DMA(&huart2, "CLR(60);\r\n", strlen("CLR(18);\r\n"));
+	osDelay(500);	
 	HAL_UART_Transmit_DMA(&huart2, (uint8_t*)get_lcd_str(), strlen(get_lcd_str()));
 	
 	while(1)
 	{
 		osDelay(500);		
-	
+		++step;
+		
 		/* 温湿度更新显示 */
 		if(dht11.exist)
 		{			
@@ -323,11 +330,11 @@ static void usart2_send_task(void const* arg)
 				dht11.reading = 1;
 				
 				osDelay(100);	
-				usart_lcd_display_temp(dht11.TEMP, &lcd, 60, 14);
+				usart_lcd_display_temp(dht11.TEMP, &lcd, bcolor, 14);
 				HAL_UART_Transmit_DMA(&huart2, (uint8_t *)lcd.display_buff, strlen(lcd.display_buff));
 
 				osDelay(100);
-				usart_lcd_display_RH(dht11.RH, &lcd, 60, 14);
+				usart_lcd_display_RH(dht11.RH, &lcd, bcolor, 14);
 				HAL_UART_Transmit_DMA(&huart2, (uint8_t *)lcd.display_buff, strlen(lcd.display_buff));
 				
 				dht11.reading = 0;
@@ -339,20 +346,20 @@ static void usart2_send_task(void const* arg)
 		if(p_air_sensor->init)
 		{
 			osDelay(100);
-			usart_lcd_display_TVOC(p_air_sensor->air_ppm, &lcd, 60, 14);
+			usart_lcd_display_TVOC(p_air_sensor->air_ppm, &lcd, bcolor, 14);
 			HAL_UART_Transmit_DMA(&huart2, (uint8_t *)lcd.display_buff, strlen(lcd.display_buff));
 			
 			osDelay(100);
-			usart_lcd_display_airq(sys_flag.tvoc_level, &lcd, 60, 14);
+			usart_lcd_display_airq(sys_flag.tvoc_level, &lcd, bcolor, 14);
 			HAL_UART_Transmit_DMA(&huart2, (uint8_t *)lcd.display_buff, strlen(lcd.display_buff));
 		}
 		
 		osDelay(100);
 		xSemaphoreTake( mutex_read_gps, portMAX_DELAY );	
 		if(gps_valid(get_gps_message()))
-			usart_lcd_display_GPS(get_gps_message()->use_satellite_count, &lcd, 60, 3);
+			usart_lcd_display_GPS(get_gps_message()->use_satellite_count, &lcd, bcolor, 3);
 		else
-			usart_lcd_display_GPS(0, &lcd, 60, 3);
+			usart_lcd_display_GPS(0, &lcd, bcolor, 3);
 		xSemaphoreGive(mutex_read_gps);
 		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)lcd.display_buff, strlen(lcd.display_buff));
 		
@@ -360,41 +367,41 @@ static void usart2_send_task(void const* arg)
 		xSemaphoreTake( mutex_read_gps, portMAX_DELAY );	
 			if(gps_valid(get_gps_message()))
 			{
-				switch( (int)get_gps_message()->groundSpeed / 10 )
+				switch( ((int)(get_gps_message()->groundSpeed)) / 10 )
 				{
 					case 0:
 					case 1:
 					case 2:
 					case 3:
-						fcolor = 25;
+						fcolor = LIME_COLOR;
 						break;
 					case 4:
 					case 5:
-						fcolor = 6;
+						fcolor = GREEN_COLOR;
 						break;
 					case 6:
 					case 7:
-						fcolor = 5;
+						fcolor = ROYAL_BLUE_COLOR;
 						break;
 					case 8:
 					case 9:
-						fcolor = 3;
+						fcolor = ORANGE_COLOR;
 						break;
 					default:
-						fcolor = 30;
+						fcolor = RED_COLOR;
 						break;
 				}
-				usart_lcd_display_speed(get_gps_message()->groundSpeed, &lcd,60, fcolor);
+				usart_lcd_display_speed(get_gps_message()->groundSpeed, &lcd,bcolor, fcolor);
 			}
 			else
-				usart_lcd_display_speed(0.0, &lcd,60, 45);
+				usart_lcd_display_speed(0.0, &lcd,bcolor, fcolor);
 		xSemaphoreGive(mutex_read_gps);
 		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)lcd.display_buff, strlen(lcd.display_buff));
 		
 		osDelay(100);
 		xSemaphoreTake( mutex_read_gps, portMAX_DELAY );
 			local_time(get_gps_utc_date_str(), get_gps_utc_time_str(), 8);
-			utc_time_display(&lcd, get_gps_utc_time_str(), get_gps_utc_date_str(), 60, 3);
+			utc_time_display(&lcd, get_gps_utc_time_str(), get_gps_utc_date_str(), bcolor, 3);
 			HAL_UART_Transmit_DMA(&huart2, (uint8_t *)lcd.display_buff, strlen(lcd.display_buff));
 		xSemaphoreGive(mutex_read_gps);
 	}
