@@ -329,11 +329,11 @@ static void usart2_send_task(void const* arg)
 			{
 				dht11.reading = 1;
 				
-				osDelay(100);	
+				osDelay(200);	
 				usart_lcd_display_temp(dht11.TEMP, &lcd, bcolor, 14);
 				HAL_UART_Transmit_DMA(&huart2, (uint8_t *)lcd.display_buff, strlen(lcd.display_buff));
 
-				osDelay(100);
+				osDelay(200);
 				usart_lcd_display_RH(dht11.RH, &lcd, bcolor, 14);
 				HAL_UART_Transmit_DMA(&huart2, (uint8_t *)lcd.display_buff, strlen(lcd.display_buff));
 				
@@ -345,16 +345,16 @@ static void usart2_send_task(void const* arg)
 		/* 更新TVOC传感器数据显示 */
 		if(p_air_sensor->init)
 		{
-			osDelay(100);
+			osDelay(200);
 			usart_lcd_display_TVOC(p_air_sensor->air_ppm, &lcd, bcolor, 14);
 			HAL_UART_Transmit_DMA(&huart2, (uint8_t *)lcd.display_buff, strlen(lcd.display_buff));
 			
-			osDelay(100);
+			osDelay(200);
 			usart_lcd_display_airq(sys_flag.tvoc_level, &lcd, bcolor, 14);
 			HAL_UART_Transmit_DMA(&huart2, (uint8_t *)lcd.display_buff, strlen(lcd.display_buff));
 		}
 		
-		osDelay(100);
+		osDelay(200);
 		xSemaphoreTake( mutex_read_gps, portMAX_DELAY );	
 		if(gps_valid(get_gps_message()))
 			usart_lcd_display_GPS(get_gps_message()->use_satellite_count, &lcd, bcolor, 3);
@@ -363,7 +363,7 @@ static void usart2_send_task(void const* arg)
 		xSemaphoreGive(mutex_read_gps);
 		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)lcd.display_buff, strlen(lcd.display_buff));
 		
-		osDelay(100);
+		osDelay(300);
 		xSemaphoreTake( mutex_read_gps, portMAX_DELAY );	
 			if(gps_valid(get_gps_message()))
 			{
@@ -377,7 +377,7 @@ static void usart2_send_task(void const* arg)
 						break;
 					case 4:
 					case 5:
-						fcolor = GREEN_COLOR;
+						fcolor = CYAN_COLOR;
 						break;
 					case 6:
 					case 7:
@@ -398,12 +398,12 @@ static void usart2_send_task(void const* arg)
 		xSemaphoreGive(mutex_read_gps);
 		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)lcd.display_buff, strlen(lcd.display_buff));
 		
-		osDelay(100);
+		osDelay(300);
 		xSemaphoreTake( mutex_read_gps, portMAX_DELAY );
 			local_time(get_gps_utc_date_str(), get_gps_utc_time_str(), 8);
 			utc_time_display(&lcd, get_gps_utc_time_str(), get_gps_utc_date_str(), bcolor, 3);
-			HAL_UART_Transmit_DMA(&huart2, (uint8_t *)lcd.display_buff, strlen(lcd.display_buff));
 		xSemaphoreGive(mutex_read_gps);
+			HAL_UART_Transmit_DMA(&huart2, (uint8_t *)lcd.display_buff, strlen(lcd.display_buff));
 	}
 }
 /* function code end */
@@ -795,13 +795,13 @@ static void restart_usart(UART_HandleTypeDef *huart)
 {
 	if(huart==0) return;
 	
-	if(huart->ErrorCode |= HAL_UART_ERROR_ORE!=RESET)
+	if((huart->ErrorCode |= HAL_UART_ERROR_ORE)!=RESET)
 	{
 		huart->ErrorCode = HAL_UART_ERROR_NONE;
 		huart->RxState = HAL_UART_STATE_BUSY_RX;
 		
-		SET_BIT(huart->Instance->CR1, (USART_CR1_RXNEIE | USART_CR1_PEIE));
-		SET_BIT(huart->Instance->CR3, USART_CR3_EIE);
+		//SET_BIT(huart->Instance->CR1, (USART_CR1_RXNEIE | USART_CR1_PEIE));
+		//SET_BIT(huart->Instance->CR3, USART_CR3_EIE);
 
 		/* Process Unlocked */
 		__HAL_UNLOCK(huart);
