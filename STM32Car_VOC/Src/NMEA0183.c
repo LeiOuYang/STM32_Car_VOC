@@ -202,7 +202,7 @@ bool get_nmea_frame(char usartC, char* frame, unsigned int* cou)
 {
 	static unsigned char flag = NMEA_NO;	
 	static unsigned int count = 0;				
-	static char crc[2];
+	static char crc[2] = {0};
 	static unsigned int crcSum = 0;
 	
 	if(0==frame) return false;
@@ -212,7 +212,13 @@ bool get_nmea_frame(char usartC, char* frame, unsigned int* cou)
 		case NMEA_NO:
 		{
 			if('$'==usartC)    //识别到开始符'$'    
+			{
 				flag = NMEA_START;	
+				count = 0;
+				crc[0] = crc[1] = 0;
+				crcSum = 0;
+				*cou = 0;
+			}
 			break;
 		}
 		case NMEA_START:
@@ -884,6 +890,14 @@ void gll_parse(char* frame, gps_message* pos, unsigned int len)
 				}else if(5==count) //字段5 utc time
 				{
 					set_gps_utc_time_str(buff);	
+				}else if(6==count)
+				{
+					if(buff[0]=='A')
+					{
+						pos->data_val = true;
+					}else{
+						pos->data_val = false;
+					}
 				}
 		  }
 			index = 0;		
@@ -893,12 +907,7 @@ void gll_parse(char* frame, gps_message* pos, unsigned int len)
 	
 	if(count>0) //字段6 定位状态 A-有效  V-未定位
 	{
-		if(buff[0]=='A')
-		{
-			pos->data_val = true;
-		}else{
-			pos->data_val = false;
-		}
+
 	}
 }
 //end function
