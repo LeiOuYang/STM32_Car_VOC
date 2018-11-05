@@ -978,7 +978,7 @@ void vtg_parse(char* frame, gps_message* pos, unsigned int len)
 						}
 						pos->groundSpeed += (buff[t]-'0')*pow(10,t);
 					}
-					pos->groundSpeed += xiaoshu;				
+					pos->groundSpeed += xiaoshu;						
 				}
 		  }
 			index = 0;		
