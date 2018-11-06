@@ -365,7 +365,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F103xB</Define>
               <Undefine></Undefine>
-              <IncludePath>../Inc;        ../Drivers/STM32F1xx_HAL_Driver/Inc;        ../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;        ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM3;        ../Drivers/CMSIS/Device/ST/STM32F1xx/Include;        ../Middlewares/Third_Party/FreeRTOS/Source/include;        ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS;        ../Drivers/CMSIS/Include;        ..\Src</IncludePath>
+              <IncludePath>../Inc;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM3;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Middlewares/Third_Party/FreeRTOS/Source/include;../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS;../Drivers/CMSIS/Include;..\Src;..\Gizwits</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -637,6 +637,21 @@
               <FileName>cmsis_os.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Gizwits</GroupName>
+          <Files>
+            <File>
+              <FileName>AwesomeDataProcess.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Gizwits\AwesomeDataProcess.c</FilePath>
+            </File>
+            <File>
+              <FileName>gizwits_protocol.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Gizwits\gizwits_protocol.c</FilePath>
             </File>
           </Files>
         </Group>

@@ -22,21 +22,21 @@ void app_run(void)
 //	osThreadDef(OledTask, update_oled_task, osPriorityIdle, 0, 128);
 //	osThreadCreate(osThread(OledTask), NULL);	
 
-	/* 串口1接收数据处理任务 */
-	osThreadDef(UART1RXTask, usart1_receive_task, osPriorityBelowNormal, 0, 256);
-	osThreadCreate(osThread(UART1RXTask), NULL);
+	/* gizwits通信模组接收数据处理任务 */
+	osThreadDef(GIZWITSTASK, gizwits_data_process_task, osPriorityBelowNormal, 0, 512+256);
+	osThreadCreate(osThread(GIZWITSTASK), NULL);
 	/* 串口2接收数据处理任务 */
-//	osThreadDef(UART2RXTask, usart2_receive_task, osPriorityLow, 0, 256);
-//	osThreadCreate(osThread(UART2RXTask), NULL);
+	osThreadDef(UART2RXTask, usart2_receive_task, osPriorityLow, 0, 256);
+	osThreadCreate(osThread(UART2RXTask), NULL);
 	/* 串口3接收数据处理任务 */
 	osThreadDef(UART3RXTask, usart3_receive_task, osPriorityLow, 0, 512+128);
 	osThreadCreate(osThread(UART3RXTask), NULL);
 	
-	/* 串口1发送处理任务 */
-//	osThreadDef(UART1TXTask, usart1_send_task, osPriorityBelowNormal, 0, 256);
-//	osThreadCreate(osThread(UART1TXTask), NULL);
+	/* 与通信模组通信任务 */
+	osThreadDef(UART1TXTask, usart1_send_task, osPriorityBelowNormal, 0, 256);
+	osThreadCreate(osThread(UART1TXTask), NULL);
 	/* 串口2发送数据处理任务 */
-	osThreadDef(UART2TXTask, usart2_send_task, osPriorityNormal, 0, 512+128+128);
+	osThreadDef(UART2TXTask, usart2_send_task, osPriorityNormal, 0, 256);
 	osThreadCreate(osThread(UART2TXTask), NULL);
 	
 	/* DHT11数据处理任务 */
@@ -289,13 +289,30 @@ static void usart1_receive_task(void const* arg)
 /* 串口1发送任务 */
 static void usart1_send_task(void const* arg)
 {
-
+	uint16_t data_len = 0;
+	LoopQueue* sendQueue;
+	char send_buff[128];
+	
 	while(1)
 	{
 		osDelay(50);	
 		
 		xSemaphoreTake( mutex_usart1_tx, portMAX_DELAY );		
-
+		sendQueue = getUsartSendLoopQueue(USART1_ID); /* get send queue */
+		if(sendQueue!=NULL)
+		{		
+			data_len = writeBuffLen(USART1_ID); /* send queue data count */
+			if(data_len>0)
+			{
+				unsigned int i = 0;
+				if(data_len>128) data_len=128;
+				for( i=0; i<data_len; ++i)
+				{
+					send_buff[i] = readCharLoopQueue(sendQueue);
+				}
+				HAL_UART_Transmit_DMA(&huart1, (uint8_t *)send_buff, (uint16_t)data_len); /* DMA send	*/
+			}
+		}		
 		xSemaphoreGive(mutex_usart1_tx);
 	}
 }
@@ -411,17 +428,42 @@ static void usart2_send_task(void const* arg)
 /* 串口2接收处理任务 */
 static void usart2_receive_task(void const* arg)
 {
-	unsigned int data_len = 0;
+		unsigned int data_len = 0;
 	char buff[128];
+	unsigned int i = 0;
+	unsigned char count = 0;
+	
 	while(1)
 	{
-		osDelay(30);
-		restart_usart(&huart2);
-		data_len = readBuffLen(USART2_ID); /* 读取串口1缓冲队列中的数据长度 */
+		osDelay(20);
+		restart_usart(&huart1);
+		data_len = readBuffLen(USART1_ID); /* 读取串口1缓冲队列中的数据长度 */
 		if(data_len>0)
 		{
 			if(data_len>128) data_len = 128;			
-			read(USART2_ID, &buff[0], data_len);
+			read(USART1_ID, &buff[0], data_len);
+			
+			/* 解析数据 */
+			for(i=0; i<data_len; ++i)
+			{
+				count = 0;
+				p_air_sensor->update(buff[i]);
+				if(p_air_sensor->health && !p_air_sensor->error)
+				{
+					/* 换算等级 */
+					sys_flag.tvoc_level = p_air_sensor->convert_level((unsigned int)(p_air_sensor->air_ppm*10));
+					sys_flag.tvoc_ppm = (unsigned char)p_air_sensor->air_ppm;
+					sys_flag.oled_update_area |= OLED_UPDATE_AREA_AIR_YES;
+				}
+			}
+		}else if(0==data_len)
+		{
+			count++;
+			if(count>=250)
+			{
+				count = 250;
+				sys_flag.sensor_healthy &= ~SENSOR_TVOC_HEALTHY;
+			}
 		}
 	}
 }
@@ -965,6 +1007,68 @@ static void beep_fun(void)
 	{
 		step = 0;
 		reset_beep();
+	}
+}
+
+/* gizwits MCU设备接收数据处理任务 */
+static void gizwits_data_process_task(void const* arg)
+{
+	unsigned int data_len = 0;
+	char buff[128] = {0};
+	unsigned char gizwits_data[150] = {0};
+	unsigned int i = 0;
+	unsigned char count = 0;
+	
+	gizwits_pack* p_gizwits_pack_send;
+	gizwits_pack gizwits_pack_send_buff;
+	gizwits_status* p_gizwits_status;
+	gizwits_pack gizwits_pack_rec_buff;
+	gizwits_result gizwits_result_rec;
+	gizwits_init();	
+	p_gizwits_pack_send = get_gizwits();
+	p_gizwits_status = (gizwits_status*)get_gizwits_status();
+	
+	while(1)
+	{
+		osDelay(20);
+		restart_usart(&huart1);
+		data_len = readBuffLen(USART1_ID); /* 读取串口1缓冲队列中的数据长度 */
+		
+		if(data_len>0)
+		{
+			if(data_len>128) data_len = 128;			
+			read(USART1_ID, &buff[0], data_len);
+			
+			/* 解析数据 */
+			for(i=0; i<data_len; ++i)
+			{
+				count = 0;
+				if(GIZWITS_RESULT_OK==gizwits_parse_char(buff[i], &gizwits_pack_rec_buff, &gizwits_result_rec))
+				{
+					if(gizwits_data_process(&gizwits_pack_rec_buff, p_gizwits_pack_send))
+					{
+						/* 发送数据 */
+						xSemaphoreTake( mutex_usart1_tx, portMAX_DELAY );	
+						write(USART1_ID, (char*)p_gizwits_pack_send, p_gizwits_pack_send->length);
+						xSemaphoreGive(mutex_usart1_tx);
+						
+						/* 模组请求发送数据 */
+						if(p_gizwits_status->atr_flag&&p_gizwits_status->atr_value)
+						{
+							/* 处理数据,并准备发送 */
+							
+						}
+					}
+				}
+			}
+		}else if(0==data_len)
+		{
+			count++;
+			if(count>=250)
+			{
+				count = 250;
+			}
+		}
 	}
 }
 	

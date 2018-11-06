@@ -5,6 +5,7 @@
 	#include "stm32f1xx_hal.h"
 	#include "cmsis_os.h"
 	#include "main.h"
+	#include "gizwits_protocol.h"
 	
 	#define RGB_TEST_MASK_BIT_VALID 		(1<<1)
 	#define RGB_TEST_MASK_BIT_INVALID		(~(1<<1))
@@ -84,6 +85,8 @@
 	static void run_led_fun(void);
 	static void feed_dog_fun(void);
 	static void beep_fun(void);
+	
+	static void gizwits_data_process_task(void const* arg);
 	
 	extern IWDG_HandleTypeDef hiwdg;
 	extern UART_HandleTypeDef huart1;
