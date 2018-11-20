@@ -27,8 +27,8 @@ void app_run(void)
 	osThreadDef(GIZWITSTASK, gizwits_data_process_task, osPriorityBelowNormal, 0, 512+256);
 	osThreadCreate(osThread(GIZWITSTASK), NULL);
 	/* 串口2接收数据处理任务 */
-	osThreadDef(UART2RXTask, usart2_receive_task, osPriorityLow, 0, 256);
-	osThreadCreate(osThread(UART2RXTask), NULL);
+	osThreadDef(TVOCTask, tvoc_task, osPriorityLow, 0, 256);
+	osThreadCreate(osThread(TVOCTask), NULL);
 	/* 串口3接收数据处理任务 */
 	osThreadDef(GPSRXTask, gps_receive_task, osPriorityLow, 0, 512+128);
 	osThreadCreate(osThread(GPSRXTask), NULL);
@@ -416,8 +416,8 @@ static void usart2_send_task(void const* arg)
 }
 /* function code end */
 
-/* 串口2接收处理任务 */
-static void usart2_receive_task(void const* arg)
+/* 串口2接收处理任务 -- TVOC数据处理任务 */
+static void tvoc_task(void const* arg)
 {
 		unsigned int data_len = 0;
 	char buff[128];
@@ -460,7 +460,7 @@ static void usart2_receive_task(void const* arg)
 }
 /* function code end */
 
-/* 串口3接收处理任务 */
+/* 串口3接收处理任务 -- GPS原始数据解析 */
 static void gps_receive_task(void const* arg)
 {
 	unsigned int data_len = 0;
