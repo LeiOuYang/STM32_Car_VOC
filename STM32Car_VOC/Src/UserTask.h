@@ -6,6 +6,7 @@
 	#include "cmsis_os.h"
 	#include "main.h"
 	#include "gizwits_protocol.h"
+	#include "nmea0183.h"
 	
 	#define RGB_TEST_MASK_BIT_VALID 		(1<<1)
 	#define RGB_TEST_MASK_BIT_INVALID		(~(1<<1))
@@ -69,7 +70,7 @@
 	static void usart1_receive_task(void const* arg);
 	static void usart2_send_task(void const* arg);
 	static void usart2_receive_task(void const* arg);
-	static void usart3_receive_task(void const* arg);
+	static void gps_receive_task(void const* arg);
 	static void usart3_send_task(void const* arg);
 	static void update_oled_task(void const* arg);
 	static void dht11_process_task(void const* arg);

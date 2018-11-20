@@ -16,6 +16,10 @@ typedef unsigned char BOOL;
 #define BOOL_TRUE 1
 #define BOOL_FALSE 0
 
+#define IS_DIGITAL(x) ( ((x)>='0'&&(x)<='9')||(x)=='-'||(x)=='.' )
+#define CHAR_TO_DIGITAL(x) ((x)-'0')
+#define DIGITAL_TO_CHAR(x) ( (x)+'0' )
+
 /************  内存处理函数   *************/
 BOOL memery_set(char* src, unsigned int len, char value); 
 
@@ -26,7 +30,11 @@ BOOL string_copy_len(char* dest, const char* src, unsigned int len);
 
 
 /************* 数据转换函数 ****************/ 
-unsigned char data_hex_to_uint(char c); 
+unsigned char data_hex_to_uint(char c);
+int sring_to_int(const char* pstr, unsigned char* b);
+double string_to_float(const char* pstr, unsigned char* b);
+unsigned char float_to_string(double value, char* pdest, unsigned int intgr, unsigned int dec);
+unsigned char int_to_string(int value, char* pdest, unsigned int intgr);
 
 
 /***********  常用算法函数    *************/

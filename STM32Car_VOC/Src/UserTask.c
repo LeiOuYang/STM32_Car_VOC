@@ -6,6 +6,7 @@ xQueueHandle button_event_queue;
 extern const unsigned char chinese16_16[][32];
 static DHT11 dht11;
 static LCD lcd;
+static NMEA0183 nmea_data;
 
 void app_run(void)
 {
@@ -29,8 +30,8 @@ void app_run(void)
 	osThreadDef(UART2RXTask, usart2_receive_task, osPriorityLow, 0, 256);
 	osThreadCreate(osThread(UART2RXTask), NULL);
 	/* 串口3接收数据处理任务 */
-	osThreadDef(UART3RXTask, usart3_receive_task, osPriorityLow, 0, 512+128);
-	osThreadCreate(osThread(UART3RXTask), NULL);
+	osThreadDef(GPSRXTask, gps_receive_task, osPriorityLow, 0, 512+128);
+	osThreadCreate(osThread(GPSRXTask), NULL);
 	
 	/* 与通信模组通信任务 */
 	osThreadDef(UART1TXTask, usart1_send_task, osPriorityBelowNormal, 0, 256);
@@ -371,56 +372,46 @@ static void usart2_send_task(void const* arg)
 			HAL_UART_Transmit_DMA(&huart2, (uint8_t *)lcd.display_buff, strlen(lcd.display_buff));
 		}
 		
-		osDelay(200);
-		xSemaphoreTake( mutex_read_gps, portMAX_DELAY );	
-		if(gps_valid(get_gps_message()))
-			usart_lcd_display_GPS(get_gps_message()->use_satellite_count, &lcd, bcolor, 3);
-		else
-			usart_lcd_display_GPS(0, &lcd, bcolor, 3);
-		xSemaphoreGive(mutex_read_gps);
+		osDelay(200);	
+		usart_lcd_display_GPS(nmea_data.gpsData.num_sats, &lcd, bcolor, 3);
 		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)lcd.display_buff, strlen(lcd.display_buff));
 		
-		osDelay(300);
-		xSemaphoreTake( mutex_read_gps, portMAX_DELAY );	
-			if(gps_valid(get_gps_message()))
+		osDelay(300);	
+		if(is_good(&nmea_data))
+		{
+			switch( ((int)(nmea_data.gpsData.ground_speed)) / 10 )
 			{
-				switch( ((int)(get_gps_message()->groundSpeed)) / 10 )
-				{
-					case 0:
-					case 1:
-					case 2:
-					case 3:
-						fcolor = LIME_COLOR;
-						break;
-					case 4:
-					case 5:
-						fcolor = CYAN_COLOR;
-						break;
-					case 6:
-					case 7:
-						fcolor = ROYAL_BLUE_COLOR;
-						break;
-					case 8:
-					case 9:
-						fcolor = ORANGE_COLOR;
-						break;
-					default:
-						fcolor = RED_COLOR;
-						break;
-				}
-				usart_lcd_display_speed(get_gps_message()->groundSpeed, &lcd,bcolor, fcolor);
+				case 0:
+				case 1:
+				case 2:
+				case 3:
+					fcolor = LIME_COLOR;
+					break;
+				case 4:
+				case 5:
+					fcolor = CYAN_COLOR;
+					break;
+				case 6:
+				case 7:
+					fcolor = ROYAL_BLUE_COLOR;
+					break;
+				case 8:
+				case 9:
+					fcolor = ORANGE_COLOR;
+					break;
+				default:
+					fcolor = RED_COLOR;
+					break;
 			}
-			else
-				usart_lcd_display_speed(0.0, &lcd,bcolor, fcolor);
-		xSemaphoreGive(mutex_read_gps);
+			usart_lcd_display_speed(nmea_data.gpsData.ground_speed, &lcd,bcolor, fcolor);
+		}
+		else
+			usart_lcd_display_speed(0.0, &lcd,bcolor, fcolor);
 		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)lcd.display_buff, strlen(lcd.display_buff));
 		
 		osDelay(300);
-		xSemaphoreTake( mutex_read_gps, portMAX_DELAY );
-			local_time(get_gps_utc_date_str(), get_gps_utc_time_str(), 8);
-			utc_time_display(&lcd, get_gps_utc_time_str(), get_gps_utc_date_str(), bcolor, 3);
-		xSemaphoreGive(mutex_read_gps);
-			HAL_UART_Transmit_DMA(&huart2, (uint8_t *)lcd.display_buff, strlen(lcd.display_buff));
+		utc_time_display(&lcd, &nmea_data.gpsData.date_time, bcolor, 3);
+		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)lcd.display_buff, strlen(lcd.display_buff));
 	}
 }
 /* function code end */
@@ -470,7 +461,7 @@ static void usart2_receive_task(void const* arg)
 /* function code end */
 
 /* 串口3接收处理任务 */
-static void usart3_receive_task(void const* arg)
+static void gps_receive_task(void const* arg)
 {
 	unsigned int data_len = 0;
 	char buff[200];
@@ -483,7 +474,7 @@ static void usart3_receive_task(void const* arg)
 	
 	while(1)
 	{
-		osDelay(40);
+		osDelay(20);
 		restart_usart(&huart3);
 		data_len = readBuffLen(USART3_ID); /* 读取串口3缓冲队列中的数据长度 */
 		if(data_len>0)
@@ -494,12 +485,9 @@ static void usart3_receive_task(void const* arg)
 			/* 解析数据 */
 			for(i=0; i<data_len; ++i)
 			{
-				if(get_nmea_frame(buff[i], nmea_buff, &gpscount))//按字符解析，如果得到一帧数据，则为真
+				if(nmea_decode(&nmea_data, buff[i]))//按字符解析，如果得到一帧数据，则为真
 				{
-					xSemaphoreTake( mutex_read_gps, portMAX_DELAY );	
-					nema_message_parse(nmea_buff, get_gps_message(), gpscount); //对一帧数据进行解析
 					count = 0;
-					xSemaphoreGive(mutex_read_gps);
 					break;
 				}
 				++count;
@@ -512,7 +500,7 @@ static void usart3_receive_task(void const* arg)
 		if(count>=250)
 		{
 			count = 250;
-			get_gps_message()->data_val = false;
+			init_nmea0183(&nmea_data);
 		}
 	}
 }
@@ -685,12 +673,11 @@ static void init_system(void)
 	initUsartBuff(USART1_ID);
 	initUsartBuff(USART3_ID);
 	
-	init_gps_message(get_gps_message());
-
+	init_nmea0183(&nmea_data);
+	
 	init_system_button();
 	mutex_usart1_tx = xSemaphoreCreateMutex();
 	mutex_usart2_tx = xSemaphoreCreateMutex();
-	mutex_read_gps =  xSemaphoreCreateMutex();
 	button_event_queue = xQueueCreate( 10, sizeof( Button* ));
 	
 	p_air_sensor = get_air_sensor(); 

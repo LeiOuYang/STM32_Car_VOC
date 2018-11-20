@@ -689,13 +689,13 @@ char* usart_lcd_display_error(unsigned char num, LCD *plcd, unsigned char bcolor
 
 //void time_convert(charchar* gpstime, char* gpsdate)
 
-char* utc_time_display(LCD *plcd, char* gpstime, char* gpsdate, unsigned char bcolor, unsigned char fcolor)
+char* utc_time_display(LCD *plcd, DateTime* dateTime, unsigned char bcolor, unsigned char fcolor)
 {
 	char buff[10];
 	unsigned int i = 0;
 	char *psrc;
 	
-	if(0==gpstime || 0==gpsdate || 0==plcd) return (void*)0;
+	if(0==dateTime || 0==plcd) return (void*)0;
 	
 	psrc = plcd->display_buff;	
 	copy_string(psrc, (char *)TIME_DISPLAY, sizeof(TIME_DISPLAY));
@@ -723,11 +723,11 @@ char* utc_time_display(LCD *plcd, char* gpstime, char* gpsdate, unsigned char bc
 		
 		if(*psrc=='X' && *(psrc+1)=='X' && *(psrc+2)==':')
 		{
-			*psrc++ = gpstime[0];
-			*psrc++ = gpstime[1];
+			*psrc++ = DIGITAL_TO_CHAR((dateTime->hour%100)/10);
+			*psrc++ = DIGITAL_TO_CHAR(dateTime->hour%10);
 			*psrc++ = ':';
-			*psrc++ = gpstime[2];
-			*psrc++ = gpstime[3];
+			*psrc++ = DIGITAL_TO_CHAR((dateTime->min%100)/10);
+			*psrc++ = DIGITAL_TO_CHAR(dateTime->min%10);
 			continue;
 		}
 		
@@ -735,14 +735,14 @@ char* utc_time_display(LCD *plcd, char* gpstime, char* gpsdate, unsigned char bc
 		{
 			*psrc++ = '2';
 			*psrc++ = '0';
-			*psrc++ = gpsdate[4];
-			*psrc++ = gpsdate[5];
+			*psrc++ = DIGITAL_TO_CHAR((dateTime->year%100)/10);
+			*psrc++ = DIGITAL_TO_CHAR(dateTime->year%10);
 			*psrc++ = '-';
-			*psrc++ = gpsdate[2];
-			*psrc++ = gpsdate[3];
+			*psrc++ = DIGITAL_TO_CHAR((dateTime->month%100)/10);
+			*psrc++ = DIGITAL_TO_CHAR(dateTime->month%10);
 			*psrc++ = '-';
-			*psrc++ = gpsdate[0];
-			*psrc++ = gpsdate[1];
+			*psrc++ = DIGITAL_TO_CHAR((dateTime->day%100)/10);
+			*psrc++ = DIGITAL_TO_CHAR(dateTime->day%10);
 			continue;
 		}	
 		

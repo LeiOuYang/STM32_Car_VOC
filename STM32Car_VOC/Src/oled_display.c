@@ -1,5 +1,6 @@
 
 #include "oled_display.h"
+#include "AwesomeDataProcess.h"
 
 //const unsigned char logBmp[] = {\
 //0x00,0x00,0x1C,0x3C,0x7E,0xFE,0xFE,0xEE,0xDC,0x9C,0x3C,0x38,0x78,0x70,0xF0,0xE0,
@@ -406,182 +407,182 @@ void copy_string(char* dest,char *src,unsigned int num)
 	}
 } 
 
-/* 整数转换为字符串   
-** value为初始值
-** buff为转换后的字符缓冲区，缓冲区结束标志位'\0',从高位开始保存
-** num为有效数据个数
-** 数据转换成功返回1， 不成功返回0
-*/
-unsigned char int_to_string(int value, char* buff, unsigned int num)
-{
-	int i = 0;
-	char *pc = 0;
-	unsigned int pow1 =(unsigned int)pow_int(10, num);
-	unsigned char realS = 0;  /* 第一位数据不是0的标志位，1-表示非0 */
-	unsigned int temp = 0;
-	
-	if(0==buff)  return 0;	
-	pc = buff;
-	
-	/* 值为0的时候，有效数据中只有一个0*/
-	if(0==value||0==num) 
-	{
-		*pc = num_to_char(0);
-		++pc;
-		*pc = '\0';
-	}else
-	{
-		/* 处理符号位，并且将负数转换为正数*/
-		if(value<0)
-		{
-			*pc = '-';
-			++pc;
-			value = -value;  
-		}		
-		
-		value %= pow1;
-		
-		for(i=0; i<num; ++i)
-		{		
-			pow1 = pow1/10;
-			temp = (unsigned int)((unsigned int)value/pow1);
-			if(0==realS && temp!=0)
-			{				
-				realS = 1;
-			}
-			if(1==realS)
-			{
-				*pc = num_to_char(temp);
-				++pc;
-				value %= pow1;
-			}			
-		}
-		*pc = '\0';
-		return 1;					
-	}
-}
+///* 整数转换为字符串   
+//** value为初始值
+//** buff为转换后的字符缓冲区，缓冲区结束标志位'\0',从高位开始保存
+//** num为有效数据个数
+//** 数据转换成功返回1， 不成功返回0
+//*/
+//unsigned char int_to_string(int value, char* buff, unsigned int num)
+//{
+//	int i = 0;
+//	char *pc = 0;
+//	unsigned int pow1 =(unsigned int)pow_int(10, num);
+//	unsigned char realS = 0;  /* 第一位数据不是0的标志位，1-表示非0 */
+//	unsigned int temp = 0;
+//	
+//	if(0==buff)  return 0;	
+//	pc = buff;
+//	
+//	/* 值为0的时候，有效数据中只有一个0*/
+//	if(0==value||0==num) 
+//	{
+//		*pc = num_to_char(0);
+//		++pc;
+//		*pc = '\0';
+//	}else
+//	{
+//		/* 处理符号位，并且将负数转换为正数*/
+//		if(value<0)
+//		{
+//			*pc = '-';
+//			++pc;
+//			value = -value;  
+//		}		
+//		
+//		value %= pow1;
+//		
+//		for(i=0; i<num; ++i)
+//		{		
+//			pow1 = pow1/10;
+//			temp = (unsigned int)((unsigned int)value/pow1);
+//			if(0==realS && temp!=0)
+//			{				
+//				realS = 1;
+//			}
+//			if(1==realS)
+//			{
+//				*pc = num_to_char(temp);
+//				++pc;
+//				value %= pow1;
+//			}			
+//		}
+//		*pc = '\0';
+//		return 1;					
+//	}
+//}
 
-/* 指定保留位数将浮点数转换为字符串   
-** value为初始值
-** buff为转换后的字符缓冲区，缓冲区结束标志位'\0'
-** num为整数位有效数据个数
-** dotNum为小数位有效数据个数
-** 数据转换成功返回1， 不成功返回0
-*/
-unsigned char float_to_string(double value, char* buff, unsigned int num, unsigned int dotNum)
-{
-	int i = 0;
-	char *pc = 0;
-	unsigned int pow1 =0;
-	unsigned char realS = 0;  /* 第一位数据不是0的标志位，1-表示非0 */
-	unsigned int temp = 0;
-	unsigned int intValue = 0;
-	unsigned int dotValue = 0;
-	double value1 = 0.0;
-	
-	if(0==buff) return 0;
+///* 指定保留位数将浮点数转换为字符串   
+//** value为初始值
+//** buff为转换后的字符缓冲区，缓冲区结束标志位'\0'
+//** num为整数位有效数据个数
+//** dotNum为小数位有效数据个数
+//** 数据转换成功返回1， 不成功返回0
+//*/
+//unsigned char float_to_string(double value, char* buff, unsigned int num, unsigned int dotNum)
+//{
+//	int i = 0;
+//	char *pc = 0;
+//	unsigned int pow1 =0;
+//	unsigned char realS = 0;  /* 第一位数据不是0的标志位，1-表示非0 */
+//	unsigned int temp = 0;
+//	unsigned int intValue = 0;
+//	unsigned int dotValue = 0;
+//	double value1 = 0.0;
+//	
+//	if(0==buff) return 0;
 
-	pc = buff;
-	
-	/* 指定保留小数部分和整数部分为0，返回为0 */
-	if(0==num && 0==dotNum || 0.0000000==value)
-	{
-		*pc = num_to_char(0);
-		++pc;
-		if(dotNum!=0)
-		{
-			*pc = '.';
-			++pc;
-			for(i=0; i<dotNum; ++i)
-			{
-				*pc = '0';
-				++pc;
-			}
-		}
-		*pc = '\0';
-		return 1;
-	}else
-	{
-		value1 = value;
-		/* 处理符号位 */
-		if(value1<0)
-		{
-			*pc = '-';
-			++pc;
-			value1 = -value1;  
-		}
-		/* 整数个数为0，则为0 */
-		if(0==num)
-		{
-			*pc = num_to_char(0);
-			++pc;
-		}else
-		{
-			intValue = (unsigned int)value1;
-			
-			/* 处理整数部分 */
-			pow1 = pow_int(10, num);			
-			intValue %= pow1;
-		
-			for(i=0; i<num; ++i)
-			{		
-				pow1 = pow1/10;
-				temp = (unsigned int)((unsigned int)intValue/pow1);
-				if(0==realS && temp!=0)
-				{				
-					realS = 1;
-				}
-				if(1==realS)
-				{
-					*pc = num_to_char(temp);
-					++pc;
-					intValue %= pow1;
-				}			
-			}
-			if(0==realS)
-			{
-				*pc = num_to_char(0);
-				++pc;
-			}
-			/* 结束整数部分 */				
-		}
-		/* 没有小数部分，直接返回字符串 */
-		if(0==dotNum)
-		{
-			*pc = '\0';
-			return 1;
-		}else /* 处理小数部分 */
-		{
-			*pc = '.';
-			++pc;
-			dotValue = (unsigned int)((value1-intValue)*pow_int(10, dotNum));
-			pow1 = pow_int(10, dotNum);			
-			dotValue %= pow1;
-		
-			for(i=0; i<dotNum; ++i)
-			{		
-				pow1 = pow1/10;
-				temp = (unsigned int)((unsigned int)dotValue/pow1);
-				*pc = num_to_char(temp);
-				++pc;
-				dotValue %= pow1;		
-			}
-			*pc = '\0';
-			return 1;				
-		}	
-	}	
-}
+//	pc = buff;
+//	
+//	/* 指定保留小数部分和整数部分为0，返回为0 */
+//	if(0==num && 0==dotNum || 0.0000000==value)
+//	{
+//		*pc = num_to_char(0);
+//		++pc;
+//		if(dotNum!=0)
+//		{
+//			*pc = '.';
+//			++pc;
+//			for(i=0; i<dotNum; ++i)
+//			{
+//				*pc = '0';
+//				++pc;
+//			}
+//		}
+//		*pc = '\0';
+//		return 1;
+//	}else
+//	{
+//		value1 = value;
+//		/* 处理符号位 */
+//		if(value1<0)
+//		{
+//			*pc = '-';
+//			++pc;
+//			value1 = -value1;  
+//		}
+//		/* 整数个数为0，则为0 */
+//		if(0==num)
+//		{
+//			*pc = num_to_char(0);
+//			++pc;
+//		}else
+//		{
+//			intValue = (unsigned int)value1;
+//			
+//			/* 处理整数部分 */
+//			pow1 = pow_int(10, num);			
+//			intValue %= pow1;
+//		
+//			for(i=0; i<num; ++i)
+//			{		
+//				pow1 = pow1/10;
+//				temp = (unsigned int)((unsigned int)intValue/pow1);
+//				if(0==realS && temp!=0)
+//				{				
+//					realS = 1;
+//				}
+//				if(1==realS)
+//				{
+//					*pc = num_to_char(temp);
+//					++pc;
+//					intValue %= pow1;
+//				}			
+//			}
+//			if(0==realS)
+//			{
+//				*pc = num_to_char(0);
+//				++pc;
+//			}
+//			/* 结束整数部分 */				
+//		}
+//		/* 没有小数部分，直接返回字符串 */
+//		if(0==dotNum)
+//		{
+//			*pc = '\0';
+//			return 1;
+//		}else /* 处理小数部分 */
+//		{
+//			*pc = '.';
+//			++pc;
+//			dotValue = (unsigned int)((value1-intValue)*pow_int(10, dotNum));
+//			pow1 = pow_int(10, dotNum);			
+//			dotValue %= pow1;
+//		
+//			for(i=0; i<dotNum; ++i)
+//			{		
+//				pow1 = pow1/10;
+//				temp = (unsigned int)((unsigned int)dotValue/pow1);
+//				*pc = num_to_char(temp);
+//				++pc;
+//				dotValue %= pow1;		
+//			}
+//			*pc = '\0';
+//			return 1;				
+//		}	
+//	}	
+//}
 
-static int pow_int(int num, int i)
-{
-	int r = 1;
-	int j = 0;
-	
-	if((0==num&&0==i)||(0==i)) return 1;
-	
-	for(j=0; j<i; ++j)
-	{
-		r *= num;
-	}
-	return r;
-}
+//static int pow_int(int num, int i)
+//{
+//	int r = 1;
+//	int j = 0;
+//	
+//	if((0==num&&0==i)||(0==i)) return 1;
+//	
+//	for(j=0; j<i; ++j)
+//	{
+//		r *= num;
+//	}
+//	return r;
+//}

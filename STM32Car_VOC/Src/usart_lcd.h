@@ -3,6 +3,7 @@
 #define USART_LCD
 
 #include "KQM28xx.h"
+#include "nmea0183.h"
 
 #define LCD_240_320_ENABLE 1
 
@@ -78,7 +79,7 @@ char* usart_lcd_display_TVOC(float rh, LCD *plcd, unsigned char bcolor, unsigned
 char* usart_lcd_display_GPS(unsigned char num, LCD *plcd, unsigned char bcolor, unsigned char fcolor);
 char* usart_lcd_display_airq(TVOC_PPM_STATUS status, LCD *plcd, unsigned char bcolor, unsigned char fcolor);
 char* usart_lcd_display_error(unsigned char num, LCD *plcd, unsigned char bcolor, unsigned char fcolor);
-char* utc_time_display(LCD *plcd, char* gpstime, char* gpsdata, unsigned char bcolor, unsigned char fcolor);
+char* utc_time_display(LCD *plcd, DateTime* dateTime, unsigned char bcolor, unsigned char fcolor);
 
 
 #endif
