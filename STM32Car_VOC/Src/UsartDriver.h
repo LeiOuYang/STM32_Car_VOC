@@ -16,6 +16,8 @@ unsigned int readBuffLen(unsigned char id);
 unsigned int writeBuffLen(unsigned char id);
 void usartClearRxBuff(unsigned char id);
 void usartClearTxBuff(unsigned char id);
+char read_char(unsigned char id);
+char write_char(unsigned char id, char c);
 
 LoopQueue* getUsartSendLoopQueue(unsigned char id);
 LoopQueue* getUsartRecLoopQueue(unsigned char id);

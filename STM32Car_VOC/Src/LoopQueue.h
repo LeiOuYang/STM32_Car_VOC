@@ -1,40 +1,24 @@
-
 #ifndef LOOP_QUEUE_H
 #define LOOP_QUEUE_H
 
-/***  The order structure of the queue  ***/
+typedef char DATA_TYPE;
+
+typedef struct _loop_queue
+{
+	DATA_TYPE* buffer;
+	unsigned int max_len;
+	volatile unsigned int insert_index;
+	volatile unsigned int read_index;
+	volatile unsigned int count;
+}LoopQueue;
+
+unsigned char init_loop_queue(LoopQueue* plp, DATA_TYPE* p_data, unsigned int max_len);  /* init the queue,point the buffer and data len */
+unsigned char insert_element_loop_queue(LoopQueue* plp, DATA_TYPE ele);  /* insert a data to queue */ 
+DATA_TYPE read_element_loop_queue(LoopQueue* plp);  /* read a data from queue */ 
 
 
-typedef struct{
-	
-	unsigned char* data;	    // the address of begin element array
-	unsigned int front;				// the front point of queue
-	unsigned int rear;				// the rear point of queue
-	unsigned int length;
-	volatile unsigned int realLen;
-	
-} LoopQueue; 
+unsigned char clean_loop_queue(LoopQueue* plp);     /* cean the queue */ 
+unsigned int count_loop_queue(LoopQueue* plp);		/* read the queue the count of data */ 
+unsigned int space_loop_queue(LoopQueue* plp);      /* return the queue the space of buffer, max_len-count */ 
 
-/*** Function declaration ***/
-
-
-int destroyLoopQueue( LoopQueue* loopQueue );			    //destroy the queue, the point=NULL, all element value is 0									
-int loopQueueLength( LoopQueue* loopQueue );		//get the length of queue
-int loopQueueIsEmpty( LoopQueue* loopQueue );                //Determine whether the queue is empty.yes,return 1; otherwise return 0
-
-/*** char queue ***/
-int initCharLoopQueue( LoopQueue* loopQueue, unsigned char* pc, unsigned int len, unsigned char uc );	//init the queue, need to specify the length of array. all Element value is 0
-int insertCharLoopQueue( LoopQueue* loopQueue, unsigned char value );					//insert element to queue
-unsigned char readCharLoopQueue( LoopQueue* loopQueue );					//read element in queue
-unsigned int overCountLoopQueue(LoopQueue* loopQueue);
-int clearLoopQueue(LoopQueue* loopQueue);
-
-
-
-
-
-
-
-
-#endif
-
+#endif 

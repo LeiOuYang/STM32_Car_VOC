@@ -32,24 +32,44 @@ unsigned char initUsartBuff(unsigned char id)
 	
 	if(USART1_ID==id)
 	{
-		initCharLoopQueue(&usart1_rec_queue, (unsigned char*)usart1_rec_buff, USART1_REC_MAX, 0);
-		initCharLoopQueue(&usart1_send_queue, (unsigned char*)usart1_send_buff, USART1_SEND_MAX, 0);
+		init_loop_queue(&usart1_rec_queue, (char*)usart1_rec_buff, USART1_REC_MAX);
+		init_loop_queue(&usart1_send_queue, (char*)usart1_send_buff, USART1_SEND_MAX);
 		return 1;
 	}else if(USART2_ID==id)
 	{
-		initCharLoopQueue(&usart2_rec_queue, (unsigned char*)usart2_rec_buff, USART2_REC_MAX, 0);
-		initCharLoopQueue(&usart2_send_queue, (unsigned char*)usart2_send_buff, USART2_SEND_MAX, 0);
+		init_loop_queue(&usart2_rec_queue, (char*)usart2_rec_buff, USART2_REC_MAX);
+		init_loop_queue(&usart2_send_queue, (char*)usart2_send_buff, USART2_SEND_MAX);
 		return 1;
 	}else if(USART3_ID==id)
 	{
-		initCharLoopQueue(&usart3_rec_queue, (unsigned char*)usart3_rec_buff, USART3_REC_MAX, 0);
-		initCharLoopQueue(&usart3_send_queue, (unsigned char*)usart3_send_buff, USART3_SEND_MAX, 0);
+		init_loop_queue(&usart3_rec_queue, (char*)usart3_rec_buff, USART3_REC_MAX);
+		init_loop_queue(&usart3_send_queue, (char*)usart3_send_buff, USART3_SEND_MAX);
 		return 1;		
 	}
 	
 	return 0;
 }
 
+char write_char(unsigned char id, char c)
+{
+	if(id>=USART_MAX_ID)
+		return 0;
+	
+	if(USART1_ID==id)
+	{
+		insert_element_loop_queue( &usart1_send_queue, c);
+
+	}else if(USART2_ID==id)
+	{
+		insert_element_loop_queue( &usart2_send_queue, c);	
+
+	}else if(USART3_ID==id)
+	{
+		insert_element_loop_queue( &usart3_send_queue, c);		
+	}
+	
+	return 0;
+}
 
 unsigned char write(unsigned char id, char* pc, unsigned int len)
 {
@@ -61,7 +81,7 @@ unsigned char write(unsigned char id, char* pc, unsigned int len)
 		unsigned int dataLen = len;
 		for( ; dataLen>0; --dataLen )
 		{
-			insertCharLoopQueue( &usart1_send_queue, (unsigned char)(*(unsigned char*)pc));
+			insert_element_loop_queue( &usart1_send_queue, (char)(*(char*)pc));
 			++pc;
 		}
 		return len;		
@@ -71,7 +91,7 @@ unsigned char write(unsigned char id, char* pc, unsigned int len)
 		unsigned int dataLen = len;
 		for( ; dataLen>0; --dataLen )
 		{
-			insertCharLoopQueue( &usart2_send_queue, (unsigned char)(*(unsigned char*)pc));
+			insert_element_loop_queue( &usart2_send_queue, (char)(*(char*)pc));
 			++pc;
 		}
 		return len;		
@@ -81,7 +101,7 @@ unsigned char write(unsigned char id, char* pc, unsigned int len)
 		unsigned int dataLen = len;
 		for( ; dataLen>0; --dataLen )
 		{
-			insertCharLoopQueue( &usart3_send_queue, (unsigned char)(*(unsigned char*)pc));
+			insert_element_loop_queue( &usart3_send_queue, (char)(*(char*)pc));
 			++pc;
 		}
 		return len;		
@@ -89,6 +109,32 @@ unsigned char write(unsigned char id, char* pc, unsigned int len)
 	
 	return 0;
 }
+
+char read_char(unsigned char id)
+{
+	int dataLen = 0;
+	unsigned int rlen = 0;
+	unsigned int llen = 0;
+	
+	if( id>=USART_MAX_ID )
+		return 0;
+	
+	if(USART1_ID==id)
+	{
+		return (char)read_element_loop_queue(&usart1_rec_queue);			
+
+	}else if(USART2_ID==id)
+	{
+		return (char)read_element_loop_queue(&usart2_rec_queue);	
+		
+	}else if(USART3_ID==id)
+	{		
+		return (char)read_element_loop_queue(&usart3_rec_queue);	
+	}
+	
+	return 0;
+}
+
 
 unsigned int read(unsigned char id, char* buff, unsigned int Len)
 {
@@ -101,7 +147,7 @@ unsigned int read(unsigned char id, char* buff, unsigned int Len)
 	
 	if(USART1_ID==id)
 	{
-		dataLen = loopQueueLength(&usart1_rec_queue);
+		dataLen = count_loop_queue(&usart1_rec_queue);
 		if(0==dataLen) 
 			return 0;
 		
@@ -113,7 +159,7 @@ unsigned int read(unsigned char id, char* buff, unsigned int Len)
 		
 		for( ; llen>0; --llen)
 		{
-			*buff = (char)readCharLoopQueue(&usart1_rec_queue);
+			*buff = (char)read_element_loop_queue(&usart1_rec_queue);
 			++buff;
 		}			
 		
@@ -121,7 +167,7 @@ unsigned int read(unsigned char id, char* buff, unsigned int Len)
 
 	}else if(USART2_ID==id)
 	{
-		dataLen = loopQueueLength(&usart2_rec_queue);
+		dataLen = count_loop_queue(&usart2_rec_queue);
 		if(0==dataLen) 
 			return 0;
 		
@@ -133,14 +179,14 @@ unsigned int read(unsigned char id, char* buff, unsigned int Len)
 		
 		for( ; llen>0; --llen)
 		{
-			*buff = (char)readCharLoopQueue(&usart2_rec_queue);
+			*buff = (char)read_element_loop_queue(&usart2_rec_queue);
 			++buff;
 		}			
 		
 		return rlen;		
 	}else if(USART3_ID==id)
 	{		
-		dataLen = loopQueueLength(&usart3_rec_queue);
+		dataLen = count_loop_queue(&usart3_rec_queue);
 		if(0==dataLen) 
 			return 0;
 		
@@ -152,7 +198,7 @@ unsigned int read(unsigned char id, char* buff, unsigned int Len)
 		
 		for( ; llen>0; --llen)
 		{
-			*buff = (char)readCharLoopQueue(&usart3_rec_queue);
+			*buff = (char)read_element_loop_queue(&usart3_rec_queue);
 			++buff;
 		}			
 		
@@ -169,13 +215,13 @@ unsigned int readBuffLen(unsigned char id)
 	
 	if(USART1_ID==id)
 	{
-		return (unsigned int)loopQueueLength(&usart1_rec_queue);
+		return (unsigned int)count_loop_queue(&usart1_rec_queue);
 	}else if(USART2_ID==id)
 	{
-		return (unsigned int)loopQueueLength(&usart2_rec_queue);
+		return (unsigned int)count_loop_queue(&usart2_rec_queue);
 	}else if(USART3_ID==id)
 	{
-			return (unsigned int)loopQueueLength(&usart3_rec_queue);
+			return (unsigned int)count_loop_queue(&usart3_rec_queue);
 	}
 	return 0;
 }
@@ -187,13 +233,13 @@ unsigned int writeBuffLen(unsigned char id)
 	
 	if(USART1_ID==id)
 	{
-		return (unsigned int)loopQueueLength(&usart1_send_queue);
+		return (unsigned int)count_loop_queue(&usart1_send_queue);
 	}else if(USART2_ID==id)
 	{
-		return (unsigned int)loopQueueLength(&usart2_send_queue);
+		return (unsigned int)count_loop_queue(&usart2_send_queue);
 	}else if(USART3_ID==id)
 	{
-			return (unsigned int)loopQueueLength(&usart3_send_queue);
+			return (unsigned int)count_loop_queue(&usart3_send_queue);
 	}
 	return 0;
 }
@@ -241,13 +287,13 @@ void usartClearRxBuff(unsigned char id)
 	
 	if(USART1_ID==id)
 	{
-		clearLoopQueue(&usart1_rec_queue);
+		clean_loop_queue(&usart1_rec_queue);
 	}else if(USART2_ID==id)
 	{
-
+		clean_loop_queue(&usart2_rec_queue);
 	}else if(USART3_ID==id)
 	{
-
+		clean_loop_queue(&usart3_rec_queue);
 	}
 }
 
@@ -258,13 +304,13 @@ void usartClearTxBuff(unsigned char id)
 	
 	if(USART1_ID==id)
 	{
-		clearLoopQueue(&usart1_send_queue);
+		clean_loop_queue(&usart1_send_queue);
 	}else if(USART2_ID==id)
 	{
-
+		clean_loop_queue(&usart2_send_queue);
 	}else if(USART3_ID==id)
 	{
-
+		clean_loop_queue(&usart3_send_queue);
 	}
 }
 

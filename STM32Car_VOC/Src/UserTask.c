@@ -309,7 +309,7 @@ static void usart1_send_task(void const* arg)
 				if(data_len>128) data_len=128;
 				for( i=0; i<data_len; ++i)
 				{
-					send_buff[i] = readCharLoopQueue(sendQueue);
+					send_buff[i] = read_element_loop_queue(sendQueue);
 				}
 				HAL_UART_Transmit_DMA(&huart1, (uint8_t *)send_buff, (uint16_t)data_len); /* DMA send	*/
 			}
@@ -528,7 +528,7 @@ static void usart3_send_task(void const* arg)
 				if(data_len>128) data_len=128;
 				for( i=0; i<data_len; ++i)
 				{
-					send_buff[i] = readCharLoopQueue(sendQueue);
+					send_buff[i] = read_loop_queue(sendQueue);
 				}
 				HAL_UART_Transmit_DMA(&huart1, (uint8_t *)send_buff, (uint16_t)data_len); /* DMA send	*/
 			}
