@@ -1,7 +1,8 @@
 
 #include "air530.h"
 
-const char AIR530_config[] = "$PGKC115,1,0,1,0*2A\r\n$PGKC242,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*36\r\n";  /* 默认配置GPS+BEIDOU,輸出GGA、VTG、RMC字段 */
+/* 默认配置GPS+BEIDOU,輸出GGA、VTG、RMC字段,波特率38400, 输出频率为1hz */
+const char AIR530_config[] = "$PGKC115,1,0,1,0*2A\r\n$PGKC242,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*36\r\n$PGKC147,38400*3E\r\n$PGKC101,1000*02\r\n";  
 
 /* 校验和带原始字符串返回 */
 unsigned char air530_crc_str(char* dest, const char* src)

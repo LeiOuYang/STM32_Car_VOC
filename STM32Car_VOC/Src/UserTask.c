@@ -3,7 +3,7 @@
 
 #define AWESOME_DEBUG_GPS_ENABLE 0
 #define AWESOME_DEBUG_TVOC_ENABLE 0
-#define AWESOME_DEBUG_GIZWITS_ENBALE 1
+#define AWESOME_DEBUG_GIZWITS_ENBALE 0
 
 static system_flag sys_flag = { 0,0,0,(TVOC_PPM_STATUS)0,0,1,1,0,0,0,0};
 xQueueHandle button_event_queue;
@@ -28,7 +28,7 @@ void app_run(void)
 //	osThreadCreate(osThread(OledTask), NULL);	
 
 	/* gizwits通信模组接收数据处理任务 */
-	osThreadDef(GIZWITSTASK, gizwits_data_process_task, osPriorityBelowNormal, 0, 512+256);
+	osThreadDef(GIZWITSTASK, gizwits_data_process_task, osPriorityBelowNormal, 0, 768);
 	osThreadCreate(osThread(GIZWITSTASK), NULL);
 	
 	/* 串口2接收数据处理任务,TVOC数据解析	*/
@@ -40,11 +40,11 @@ void app_run(void)
 	osThreadCreate(osThread(GPSRXTask), NULL);
 	
 	/* 与通信模组通信任务 */
-	osThreadDef(UART1TXTask, usart1_send_task, osPriorityBelowNormal, 0, 256);
+	osThreadDef(UART1TXTask, usart1_send_task, osPriorityAboveNormal, 0, 256+128);
 	osThreadCreate(osThread(UART1TXTask), NULL);
 	
 	/* 串口2发送数据处理任务, 更新LCD显示 */
-	osThreadDef(UPDATELCD, update_lcd, osPriorityNormal, 0, 256);
+	osThreadDef(UPDATELCD, update_lcd, osPriorityBelowNormal, 0, 256);
 	osThreadCreate(osThread(UPDATELCD), NULL);
 	
 	/* DHT11数据处理任务 */
@@ -306,7 +306,7 @@ static void usart1_send_task(void const* arg)
 	
 	while(1)
 	{
-		osDelay(10);	
+		osDelay(20);	
 		
 		while(huart1.gState==HAL_UART_STATE_BUSY_TX && xTaskGetTickCount()-old_time<=3);
 		
@@ -361,29 +361,29 @@ static void update_lcd(void const* arg)
 	{
 		
 		#if AWESOME_DEBUG_GIZWITS_ENBALE
-			osDelay(10);	
-			
-			while(huart3.gState==HAL_UART_STATE_BUSY_TX && xTaskGetTickCount()-old_time<=3);
-			
-			sendQueue = getUsartSendLoopQueue(USART3_ID); /* get send queue */
-			if(sendQueue!=NULL)
-			{	
-				data_len = writeBuffLen(USART3_ID); /* send queue data count */
-				
-				if(data_len>0)
-				{
-					if(data_len>=100) data_len = 100;
-					
-					for( i=0; i<data_len; ++i)
-					{
-						send_buff[i] = read_element_loop_queue(sendQueue);
-					}				
-					
-					HAL_UART_Transmit_DMA(&huart3, (uint8_t *)send_buff, (uint16_t)data_len); /* DMA send	*/
-				}
-			}	
-			
-			continue;
+//			osDelay(10);	
+//			
+//			while(huart3.gState==HAL_UART_STATE_BUSY_TX && xTaskGetTickCount()-old_time<=3);
+//			
+//			sendQueue = getUsartSendLoopQueue(USART3_ID); /* get send queue */
+//			if(sendQueue!=NULL)
+//			{	
+//				data_len = writeBuffLen(USART3_ID); /* send queue data count */
+//				
+//				if(data_len>0)
+//				{
+//					if(data_len>=100) data_len = 100;
+//					
+//					for( i=0; i<data_len; ++i)
+//					{
+//						send_buff[i] = read_element_loop_queue(sendQueue);
+//					}				
+//					
+//					HAL_UART_Transmit_DMA(&huart3, (uint8_t *)send_buff, (uint16_t)data_len); /* DMA send	*/
+//				}
+//			}	
+//			
+//			continue;
 		#endif
 		osDelay(500);		
 		++step;
@@ -1097,7 +1097,7 @@ static void gizwits_data_process_task(void const* arg)
 	
 	while(1)
 	{
-		osDelay(20);
+		osDelay(10);
 		
 		restart_usart(&huart1);
 		data_len = readBuffLen(USART1_ID); /* 读取串口1缓冲队列中的数据长度 */
@@ -1110,7 +1110,7 @@ static void gizwits_data_process_task(void const* arg)
 			for(i=0; i<data_len; ++i)
 			{
 				buff[i] = read_char(USART1_ID);   
-				#if AWESOME_DEBUG_GIZWITS_ENABLE
+				#if AWESOME_DEBUG_GIZWITS_ENBALE
 					write_char(USART1_ID, buff[i]);
 				#endif	
 			}	
