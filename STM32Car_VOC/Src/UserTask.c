@@ -361,29 +361,29 @@ static void update_lcd(void const* arg)
 	{
 		
 		#if AWESOME_DEBUG_GIZWITS_ENBALE
-//			osDelay(10);	
-//			
-//			while(huart3.gState==HAL_UART_STATE_BUSY_TX && xTaskGetTickCount()-old_time<=3);
-//			
-//			sendQueue = getUsartSendLoopQueue(USART3_ID); /* get send queue */
-//			if(sendQueue!=NULL)
-//			{	
-//				data_len = writeBuffLen(USART3_ID); /* send queue data count */
-//				
-//				if(data_len>0)
-//				{
-//					if(data_len>=100) data_len = 100;
-//					
-//					for( i=0; i<data_len; ++i)
-//					{
-//						send_buff[i] = read_element_loop_queue(sendQueue);
-//					}				
-//					
-//					HAL_UART_Transmit_DMA(&huart3, (uint8_t *)send_buff, (uint16_t)data_len); /* DMA send	*/
-//				}
-//			}	
-//			
-//			continue;
+			osDelay(10);	
+			
+			while(huart3.gState==HAL_UART_STATE_BUSY_TX && xTaskGetTickCount()-old_time<=3);
+			
+			sendQueue = getUsartSendLoopQueue(USART3_ID); /* get send queue */
+			if(sendQueue!=NULL)
+			{	
+				data_len = writeBuffLen(USART3_ID); /* send queue data count */
+				
+				if(data_len>0)
+				{
+					if(data_len>=100) data_len = 100;
+					
+					for( i=0; i<data_len; ++i)
+					{
+						send_buff[i] = read_element_loop_queue(sendQueue);
+					}				
+					
+					HAL_UART_Transmit_DMA(&huart3, (uint8_t *)send_buff, (uint16_t)data_len); /* DMA send	*/
+				}
+			}	
+			
+			continue;
 		#endif
 		osDelay(500);		
 		++step;
@@ -1090,7 +1090,7 @@ static void gizwits_data_process_task(void const* arg)
 	gizwits_pack gizwits_pack_send_buff;
 	gizwits_status* p_gizwits_status;
 	gizwits_pack gizwits_pack_rec_buff;
-	gizwits_result gizwits_result_rec;
+	gizwits_result gizwits_result_rec = {GIZWITS_PARSE_NONE, GIZWITS_RESULT_NONE};
 	gizwits_init();	
 	p_gizwits_pack_send = get_gizwits();
 	p_gizwits_status = (gizwits_status*)get_gizwits_status();
@@ -1124,7 +1124,7 @@ static void gizwits_data_process_task(void const* arg)
 					if(gizwits_data_process(&gizwits_pack_rec_buff, p_gizwits_pack_send))
 					{
 						/* 发送数据 */
-						//write(USART1_ID, (char*)p_gizwits_pack_send, p_gizwits_pack_send->length);						
+						write(USART1_ID, (char*)p_gizwits_pack_send, p_gizwits_pack_send->length);						
 						/* 模组请求发送数据 */
 						if(p_gizwits_status->atr_flag&&p_gizwits_status->atr_value)
 						{

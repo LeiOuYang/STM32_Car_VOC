@@ -296,7 +296,7 @@ unsigned char gizwits_reply_pack(gizwits_pack* pg_pack, unsigned char command)
 				data[sizeof(MCU_DEV_VERSION) + 5] = 0x00;
 				data[sizeof(MCU_DEV_VERSION) + 6] = 0x00;
 				data[sizeof(MCU_DEV_VERSION) + 7] = 0x00;
-				data[sizeof(MCU_DEV_VERSION) + 8] = 0x00;
+				data[sizeof(MCU_DEV_VERSION) + 8] = 0x02;
 				
 				/* 32×Ö½Ú²úÆ·ÃÜÔ¿ */
 				string_copy((char*)&data[sizeof(MCU_DEV_VERSION) + 9], GIZWITS_PRODUCT_SECRET);
