@@ -3,6 +3,7 @@
 
 #define AWESOME_DEBUG_GPS_ENABLE 0
 #define AWESOME_DEBUG_TVOC_ENABLE 0
+#define AWESOME_DEBUG_GIZWITS_ENBALE 1
 
 static system_flag sys_flag = { 0,0,0,(TVOC_PPM_STATUS)0,0,1,1,0,0,0,0};
 xQueueHandle button_event_queue;
@@ -336,18 +337,54 @@ static void update_lcd(void const* arg)
 	unsigned char fcolor = 10;
 	unsigned char bcolor = 60;
 	unsigned int step = 0;
-
-	osDelay(2000);
-	HAL_UART_Transmit_DMA(&huart2, "CLR(60);\r\n", strlen("CLR(18);\r\n"));
-	osDelay(500);	
-	HAL_UART_Transmit_DMA(&huart2, (uint8_t*)get_lcd_str(), strlen(get_lcd_str()));
-	osDelay(1000);
-	HAL_UART_Transmit_DMA(&huart2, "CLR(60);\r\n", strlen("CLR(18);\r\n"));
-	osDelay(500);	
-	HAL_UART_Transmit_DMA(&huart2, (uint8_t*)get_lcd_str(), strlen(get_lcd_str()));
 	
+	#if AWESOME_DEBUG_GIZWITS_ENBALE
+		LoopQueue* sendQueue;
+		short int data_len = 0;
+		short int i = 0; 
+		char send_buff[100];	
+		TickType_t old_time = 0;
+		old_time = xTaskGetTickCount();
+		char buff[100] = {0};  
+	#else
+		osDelay(2000);
+		HAL_UART_Transmit_DMA(&huart2, "CLR(60);\r\n", strlen("CLR(18);\r\n"));
+		osDelay(500);	
+		HAL_UART_Transmit_DMA(&huart2, (uint8_t*)get_lcd_str(), strlen(get_lcd_str()));
+		osDelay(1000);
+		HAL_UART_Transmit_DMA(&huart2, "CLR(60);\r\n", strlen("CLR(18);\r\n"));
+		osDelay(500);	
+		HAL_UART_Transmit_DMA(&huart2, (uint8_t*)get_lcd_str(), strlen(get_lcd_str()));
+	#endif
+		
 	while(1)
 	{
+		
+		#if AWESOME_DEBUG_GIZWITS_ENBALE
+			osDelay(10);	
+			
+			while(huart3.gState==HAL_UART_STATE_BUSY_TX && xTaskGetTickCount()-old_time<=3);
+			
+			sendQueue = getUsartSendLoopQueue(USART3_ID); /* get send queue */
+			if(sendQueue!=NULL)
+			{	
+				data_len = writeBuffLen(USART3_ID); /* send queue data count */
+				
+				if(data_len>0)
+				{
+					if(data_len>=100) data_len = 100;
+					
+					for( i=0; i<data_len; ++i)
+					{
+						send_buff[i] = read_element_loop_queue(sendQueue);
+					}				
+					
+					HAL_UART_Transmit_DMA(&huart3, (uint8_t *)send_buff, (uint16_t)data_len); /* DMA send	*/
+				}
+			}	
+			
+			continue;
+		#endif
 		osDelay(500);		
 		++step;
 		
@@ -532,8 +569,10 @@ static void gps_receive_task(void const* arg)
 		if(count>=250)   /* 2500ms==2.5S内串口没数据 */
 		{
 			count = 0;
-			init_nmea0183(&nmea_data);
-			air530_config(&huart3);   /* 重新配置GPS模块 */
+			#if AWESOME_DEBUG_GIZWITS_ENBALE==0
+				init_nmea0183(&nmea_data);
+				air530_config(&huart3);   /* 重新配置GPS模块 */
+			#endif
 		}
 	}
 }
@@ -709,8 +748,8 @@ static void init_system(void)
 	init_nmea0183(&nmea_data);
 	
 	init_system_button();
-	mutex_usart1_tx = xSemaphoreCreateMutex();
-	mutex_usart2_tx = xSemaphoreCreateMutex();
+//	mutex_usart1_tx = xSemaphoreCreateMutex();
+//	mutex_usart2_tx = xSemaphoreCreateMutex();
 	button_event_queue = xQueueCreate( 10, sizeof( Button* ));
 	
 	p_air_sensor = get_air_sensor(); 
@@ -1043,7 +1082,7 @@ static void gizwits_data_process_task(void const* arg)
 {
 	unsigned int data_len = 0;
 	char buff[128] = {0};
-	unsigned char gizwits_data[150] = {0};
+	//unsigned char gizwits_data[150] = {0};
 	unsigned int i = 0;
 	unsigned char count = 0;
 	
@@ -1059,13 +1098,22 @@ static void gizwits_data_process_task(void const* arg)
 	while(1)
 	{
 		osDelay(20);
+		
 		restart_usart(&huart1);
 		data_len = readBuffLen(USART1_ID); /* 读取串口1缓冲队列中的数据长度 */
 		
 		if(data_len>0)
 		{
-			if(data_len>128) data_len = 128;			
-			read(USART1_ID, &buff[0], data_len);
+			if(data_len>=128) data_len = 128;		
+
+			/* 将数据读取到缓冲区中 */
+			for(i=0; i<data_len; ++i)
+			{
+				buff[i] = read_char(USART1_ID);   
+				#if AWESOME_DEBUG_GIZWITS_ENABLE
+					write_char(USART1_ID, buff[i]);
+				#endif	
+			}	
 			
 			/* 解析数据 */
 			for(i=0; i<data_len; ++i)
@@ -1076,10 +1124,7 @@ static void gizwits_data_process_task(void const* arg)
 					if(gizwits_data_process(&gizwits_pack_rec_buff, p_gizwits_pack_send))
 					{
 						/* 发送数据 */
-						xSemaphoreTake( mutex_usart1_tx, portMAX_DELAY );	
-						write(USART1_ID, (char*)p_gizwits_pack_send, p_gizwits_pack_send->length);
-						xSemaphoreGive(mutex_usart1_tx);
-						
+						//write(USART1_ID, (char*)p_gizwits_pack_send, p_gizwits_pack_send->length);						
 						/* 模组请求发送数据 */
 						if(p_gizwits_status->atr_flag&&p_gizwits_status->atr_value)
 						{

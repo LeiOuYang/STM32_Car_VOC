@@ -2427,21 +2427,21 @@ static HAL_StatusTypeDef UART_Receive_IT(UART_HandleTypeDef *huart)
       {
         //*huart->pRxBuffPtr++ = (uint8_t)(huart->Instance->DR & (uint8_t)0x00FF);
 				if(USART1==huart->Instance)
-					insertCharLoopQueue( getUsartRecLoopQueue(USART1_ID), huart->Instance->DR & (uint8_t)0x00FF);
+					insert_element_loop_queue( getUsartRecLoopQueue(USART1_ID), huart->Instance->DR & (uint8_t)0x00FF);
 				else if((USART2==huart->Instance))
-					insertCharLoopQueue( getUsartRecLoopQueue(USART2_ID), huart->Instance->DR & (uint8_t)0x00FF);
+					insert_element_loop_queue( getUsartRecLoopQueue(USART2_ID), huart->Instance->DR & (uint8_t)0x00FF);
 				else if((USART3==huart->Instance))
-					insertCharLoopQueue( getUsartRecLoopQueue(USART3_ID), huart->Instance->DR & (uint8_t)0x00FF);
+					insert_element_loop_queue( getUsartRecLoopQueue(USART3_ID), huart->Instance->DR & (uint8_t)0x00FF);
       }
       else
       {
         //*huart->pRxBuffPtr++ = (uint8_t)(huart->Instance->DR & (uint8_t)0x007F);
 				if(USART1==huart->Instance)
-					insertCharLoopQueue( getUsartRecLoopQueue(USART1_ID), huart->Instance->DR & (uint8_t)0x007F);
+					insert_element_loop_queue( getUsartRecLoopQueue(USART1_ID), huart->Instance->DR & (uint8_t)0x007F);
 				else if(USART2==huart->Instance)
-					insertCharLoopQueue( getUsartRecLoopQueue(USART2_ID), huart->Instance->DR & (uint8_t)0x007F);
+					insert_element_loop_queue( getUsartRecLoopQueue(USART2_ID), huart->Instance->DR & (uint8_t)0x007F);
 				else if(USART3==huart->Instance)
-					insertCharLoopQueue( getUsartRecLoopQueue(USART3_ID), huart->Instance->DR & (uint8_t)0x007F);
+					insert_element_loop_queue( getUsartRecLoopQueue(USART3_ID), huart->Instance->DR & (uint8_t)0x007F);
       }
     }
 
