@@ -47,6 +47,7 @@
 #define IS_DIGITAL(x) ( ((x)>='0'&&(x)<='9')||(x)=='-'||(x)=='.' )
 #define CHAR_TO_DIGITAL(x) ((x)-'0')
 #define DIGITAL_TO_CHAR(x) ( (x)+'0' )
+#define NUM_TO_HEX(x) ( "0123456789ABCDEF"[x] )
 
 /**************** 枚举量定义 ***************/
 	/* 解析字段枚举量 */ 

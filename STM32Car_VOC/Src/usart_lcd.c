@@ -689,16 +689,18 @@ char* usart_lcd_display_error(unsigned char num, LCD *plcd, unsigned char bcolor
 
 //void time_convert(charchar* gpstime, char* gpsdate)
 
-char* utc_time_display(LCD *plcd, DateTime* dateTime, unsigned char bcolor, unsigned char fcolor)
+char* utc_time_display(LCD *plcd, const DateTime* dateTime, unsigned char bcolor, unsigned char fcolor)
 {
 	char buff[10];
 	unsigned int i = 0;
 	char *psrc;
+	unsigned char hour = 0;
 	
 	if(0==dateTime || 0==plcd) return (void*)0;
 	
 	psrc = plcd->display_buff;	
 	copy_string(psrc, (char *)TIME_DISPLAY, sizeof(TIME_DISPLAY));
+	hour = (dateTime->hour+8)%24;
 	
 	for(; *psrc; ++psrc)
 	{
@@ -723,8 +725,8 @@ char* utc_time_display(LCD *plcd, DateTime* dateTime, unsigned char bcolor, unsi
 		
 		if(*psrc=='X' && *(psrc+1)=='X' && *(psrc+2)==':')
 		{
-			*psrc++ = DIGITAL_TO_CHAR((dateTime->hour%100)/10);
-			*psrc++ = DIGITAL_TO_CHAR(dateTime->hour%10);
+			*psrc++ = DIGITAL_TO_CHAR((hour%100)/10);
+			*psrc++ = DIGITAL_TO_CHAR(hour%10);
 			*psrc++ = ':';
 			*psrc++ = DIGITAL_TO_CHAR((dateTime->min%100)/10);
 			*psrc++ = DIGITAL_TO_CHAR(dateTime->min%10);

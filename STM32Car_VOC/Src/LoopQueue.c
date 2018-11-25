@@ -1,6 +1,9 @@
 
 #include "LoopQueue.h"
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 /* init the loop queue */
 unsigned char init_loop_queue(LoopQueue* plp, DATA_TYPE* p_data, unsigned int len) 
 {
@@ -29,11 +32,16 @@ unsigned char insert_element_loop_queue(LoopQueue* plp, DATA_TYPE ele)
 	
 	if(!space_loop_queue(plp)) return 0;
 	
-	plp->insert_index %= plp->max_len;	
+	if(plp->insert_index>=plp->max_len)
+		plp->insert_index = 0;
+	
 	plp->buffer[plp->insert_index] = ele;
 	
 	++plp->insert_index;  		/* the next data buffer index */ 
-	++plp->count;  		       /* wait process data count */
+	
+	taskDISABLE_INTERRUPTS();
+	++plp->count;  		        /* wait process data count */
+	taskENABLE_INTERRUPTS();
 	
 	return 1;
 }
@@ -47,11 +55,16 @@ DATA_TYPE read_element_loop_queue(LoopQueue* plp)
 	
 	if( 0==plp->count ) return 0;
 	
-	plp->read_index %= plp->max_len;
+	if(plp->read_index>=plp->max_len)
+		plp->read_index = 0;
+	
 	ele = plp->buffer[plp->read_index];
 	
 	++plp->read_index;
+	
+	taskDISABLE_INTERRUPTS();
 	--plp->count;
+	taskENABLE_INTERRUPTS();
 	
 	return ele;
 }

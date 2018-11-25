@@ -113,7 +113,7 @@ static unsigned char nmea_term_complete(gps_nmea* pnmea, gps_data* pdata)
 	                    pdata->location.lng     = pnmea->new_longitude;
 	                    pdata->ground_speed     = pnmea->new_speed;
 	                    pdata->ground_course    = pnmea->new_course;
-						make_date_time(pdata, pnmea->new_date, pnmea->new_time);
+											make_date_time(pdata, pnmea->new_date, pnmea->new_time);
 	                    pdata->last_gps_time_ms = now;
 	                    
 	                    break;

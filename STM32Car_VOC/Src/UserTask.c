@@ -1,6 +1,9 @@
 
 #include "UserTask.h"
 
+#define AWESOME_DEBUG_GPS_ENABLE 0
+#define AWESOME_DEBUG_TVOC_ENABLE 0
+
 static system_flag sys_flag = { 0,0,0,(TVOC_PPM_STATUS)0,0,1,1,0,0,0,0};
 xQueueHandle button_event_queue;
 extern const unsigned char chinese16_16[][32];
@@ -26,19 +29,22 @@ void app_run(void)
 	/* gizwits通信模组接收数据处理任务 */
 	osThreadDef(GIZWITSTASK, gizwits_data_process_task, osPriorityBelowNormal, 0, 512+256);
 	osThreadCreate(osThread(GIZWITSTASK), NULL);
-	/* 串口2接收数据处理任务 */
+	
+	/* 串口2接收数据处理任务,TVOC数据解析	*/
 	osThreadDef(TVOCTask, tvoc_task, osPriorityLow, 0, 256);
 	osThreadCreate(osThread(TVOCTask), NULL);
-	/* 串口3接收数据处理任务 */
+	
+	/* 串口3接收数据处理任务, GPS数据解析 */
 	osThreadDef(GPSRXTask, gps_receive_task, osPriorityLow, 0, 512+128);
 	osThreadCreate(osThread(GPSRXTask), NULL);
 	
 	/* 与通信模组通信任务 */
 	osThreadDef(UART1TXTask, usart1_send_task, osPriorityBelowNormal, 0, 256);
 	osThreadCreate(osThread(UART1TXTask), NULL);
-	/* 串口2发送数据处理任务 */
-	osThreadDef(UART2TXTask, usart2_send_task, osPriorityNormal, 0, 256);
-	osThreadCreate(osThread(UART2TXTask), NULL);
+	
+	/* 串口2发送数据处理任务, 更新LCD显示 */
+	osThreadDef(UPDATELCD, update_lcd, osPriorityNormal, 0, 256);
+	osThreadCreate(osThread(UPDATELCD), NULL);
 	
 	/* DHT11数据处理任务 */
 	osThreadDef(DHT11Task, dht11_process_task, osPriorityRealtime, 0, 256);
@@ -290,37 +296,42 @@ static void usart1_receive_task(void const* arg)
 /* 串口1发送任务 */
 static void usart1_send_task(void const* arg)
 {
-	uint16_t data_len = 0;
 	LoopQueue* sendQueue;
-	char send_buff[128];
+	short int data_len = 0;
+	short int i = 0; 
+	char send_buff[200];	
+	TickType_t old_time = 0;
+	old_time = xTaskGetTickCount();
 	
 	while(1)
 	{
-		osDelay(50);	
+		osDelay(10);	
 		
-		xSemaphoreTake( mutex_usart1_tx, portMAX_DELAY );		
+		while(huart1.gState==HAL_UART_STATE_BUSY_TX && xTaskGetTickCount()-old_time<=3);
+		
 		sendQueue = getUsartSendLoopQueue(USART1_ID); /* get send queue */
 		if(sendQueue!=NULL)
-		{		
+		{	
 			data_len = writeBuffLen(USART1_ID); /* send queue data count */
+			
 			if(data_len>0)
 			{
-				unsigned int i = 0;
-				if(data_len>128) data_len=128;
+				if(data_len>=200) data_len = 200;
+				
 				for( i=0; i<data_len; ++i)
 				{
 					send_buff[i] = read_element_loop_queue(sendQueue);
-				}
+				}				
+				
 				HAL_UART_Transmit_DMA(&huart1, (uint8_t *)send_buff, (uint16_t)data_len); /* DMA send	*/
 			}
-		}		
-		xSemaphoreGive(mutex_usart1_tx);
+		}	
 	}
 }
 /* function code end */
 
 /* 串口2发送任务 */
-static void usart2_send_task(void const* arg)
+static void update_lcd(void const* arg)
 {
 	unsigned char fcolor = 10;
 	unsigned char bcolor = 60;
@@ -419,20 +430,30 @@ static void usart2_send_task(void const* arg)
 /* 串口2接收处理任务 -- TVOC数据处理任务 */
 static void tvoc_task(void const* arg)
 {
-		unsigned int data_len = 0;
-	char buff[128];
+	unsigned int data_len = 0;
+	char buff[100];
 	unsigned int i = 0;
 	unsigned char count = 0;
 	
 	while(1)
 	{
-		osDelay(20);
-		restart_usart(&huart1);
-		data_len = readBuffLen(USART1_ID); /* 读取串口1缓冲队列中的数据长度 */
+		osDelay(50);
+		
+		restart_usart(&huart2);
+		
+		data_len = readBuffLen(USART2_ID); /* 读取串口3缓冲队列中的数据长度 */
 		if(data_len>0)
 		{
-			if(data_len>128) data_len = 128;			
-			read(USART1_ID, &buff[0], data_len);
+			if(data_len>=100) data_len = 100;		
+
+			/* 将数据读取到缓冲区中 */
+			for(i=0; i<data_len; ++i)
+			{
+				buff[i] = read_char(USART2_ID);   
+				#if AWESOME_DEBUG_TVOC_ENABLE
+					write_char(USART1_ID, buff[i]);
+				#endif	
+			}	
 			
 			/* 解析数据 */
 			for(i=0; i<data_len; ++i)
@@ -452,7 +473,7 @@ static void tvoc_task(void const* arg)
 			count++;
 			if(count>=250)
 			{
-				count = 250;
+				count = 0;
 				sys_flag.sensor_healthy &= ~SENSOR_TVOC_HEALTHY;
 			}
 		}
@@ -465,22 +486,34 @@ static void gps_receive_task(void const* arg)
 {
 	unsigned int data_len = 0;
 	char buff[200];
-	char nmea_buff[128];
 	unsigned int i = 0;
 	unsigned char count = 0;
 	unsigned int gpscount = 0;
 	
-	air530_config(&huart3);	
+//	TickType_t old_time = 0;
+//	old_time = xTaskGetTickCount();   /* 系统时钟计数 -- freertos api */
+	
+	air530_config(&huart3);	 /* 配置GPS模块 */
 	
 	while(1)
 	{
-		osDelay(20);
+		osDelay(10);   /* 10ms调用一次 */
+		
 		restart_usart(&huart3);
+		
 		data_len = readBuffLen(USART3_ID); /* 读取串口3缓冲队列中的数据长度 */
 		if(data_len>0)
 		{
-			if(data_len>200) data_len = 200;			
-			read(USART3_ID, &buff[0], data_len);
+			if(data_len>=200) data_len = 200;		
+
+			/* 将数据读取到缓冲区中 */
+			for(i=0; i<data_len; ++i)
+			{
+				buff[i] = read_char(USART3_ID);   
+				#if AWESOME_DEBUG_GPS_ENABLE
+					write_char(USART1_ID, buff[i]);
+				#endif	
+			}			
 			
 			/* 解析数据 */
 			for(i=0; i<data_len; ++i)
@@ -490,17 +523,17 @@ static void gps_receive_task(void const* arg)
 					count = 0;
 					break;
 				}
-				++count;
 			}
-		}else if(0==data_len)
+		}else if(0==data_len)  /* 如果没数据 */
 		{
 			count++;
 		}
 		
-		if(count>=250)
+		if(count>=250)   /* 2500ms==2.5S内串口没数据 */
 		{
-			count = 250;
+			count = 0;
 			init_nmea0183(&nmea_data);
+			air530_config(&huart3);   /* 重新配置GPS模块 */
 		}
 	}
 }
@@ -965,6 +998,7 @@ static void feed_dog_fun(void)
 static void beep_fun(void)
 {
 	static unsigned int step = 0;
+	static unsigned char count = 0;
 		
 	if(!sys_flag.open_beep)
 	{
@@ -975,6 +1009,12 @@ static void beep_fun(void)
 	
 	if(sys_flag.tvoc_level>=TVOC_PPM_03 && p_air_sensor->init)
 	{
+		if(count++>=20) /*  持续一秒*/
+		{
+			count = 20;
+		}else
+			return;
+		
 		++step;
 		switch(step)
 		{
@@ -992,6 +1032,7 @@ static void beep_fun(void)
 		}
 	}else 
 	{
+		count = 0;
 		step = 0;
 		reset_beep();
 	}

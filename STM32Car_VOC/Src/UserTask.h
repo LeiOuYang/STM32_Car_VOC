@@ -68,7 +68,7 @@
 	static void initUsartIT(UART_HandleTypeDef *huart);
 	static void usart1_send_task(void const* arg);
 	static void usart1_receive_task(void const* arg);
-	static void usart2_send_task(void const* arg);
+	static void update_lcd(void const* arg);
 	static void tvoc_task(void const* arg);
 	static void gps_receive_task(void const* arg);
 	static void usart3_send_task(void const* arg);

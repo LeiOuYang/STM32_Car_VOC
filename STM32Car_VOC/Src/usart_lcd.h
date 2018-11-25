@@ -79,7 +79,7 @@ char* usart_lcd_display_TVOC(float rh, LCD *plcd, unsigned char bcolor, unsigned
 char* usart_lcd_display_GPS(unsigned char num, LCD *plcd, unsigned char bcolor, unsigned char fcolor);
 char* usart_lcd_display_airq(TVOC_PPM_STATUS status, LCD *plcd, unsigned char bcolor, unsigned char fcolor);
 char* usart_lcd_display_error(unsigned char num, LCD *plcd, unsigned char bcolor, unsigned char fcolor);
-char* utc_time_display(LCD *plcd, DateTime* dateTime, unsigned char bcolor, unsigned char fcolor);
+char* utc_time_display(LCD *plcd, const DateTime* dateTime, unsigned char bcolor, unsigned char fcolor);
 
 
 #endif
