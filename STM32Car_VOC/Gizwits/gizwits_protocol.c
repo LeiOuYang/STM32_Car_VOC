@@ -5,6 +5,19 @@ static gizwits_pack gizwits;
 static gizwits_result gizwits_r;
 static gizwits_status gizwits_s;
 
+static DHT11* dht11;
+static NMEA0183* nmea_data;
+static AirSensor* air;
+
+void gizwits_set_param(DHT11* pdht11, NMEA0183* pnmea_data, AirSensor* pair)
+{
+	if((void*)0==pdht11 || (void*)0==pnmea_data || (void*)0==pair) return;
+	
+	dht11 = pdht11;
+	nmea_data = pnmea_data;
+	air = pair;
+}
+
 /*
 *	供上层应用调用，该变量对应发送数据缓冲 
 */
@@ -249,10 +262,23 @@ unsigned char gizwits_data_process(gizwits_pack* pg_pack, gizwits_pack* pg_pack_
 			{
 				unsigned short len = 0;
 				len = pg_pack->data_len;
+				gizwits_s.atr_flag = (pg_pack->data[1]<<8)|pg_pack->data[2];
+				gizwits_s.atr_value = pg_pack->data[3];
+				gizwits_s.action = pg_pack->data[0];
 				
-				gizwits_s.atr_flag = pg_pack->data[len-2-5];
-				gizwits_s.atr_value = pg_pack->data[len-1-5];
-				gizwits_reply_pack(pg_pack_send, MCU_REPLAY_MDL_DATA);
+				if(0x12==pg_pack->data[0]) /* action=0x12 */
+				{
+					if(gizwits_s.atr_flag&GET_ALL_DATA_VALID) /* 获取所有的数据 */
+					{
+						gizwits_reply_pack(pg_pack_send, MCU_REPLAY_MDL_DATA);
+					}
+				}else if(0x11==pg_pack->data[0])
+				{
+					if(gizwits_s.atr_flag&GET_ALL_DATA_VALID && gizwits_s.atr_value&GET_ALL_DATA_VALID) /* 获取所有的数据 */
+					{
+						return gizwits_reply_pack(pg_pack_send, MCU_REPLAY_MDL_DATA);
+					}
+				}
 				break;	
 			}
 			
@@ -303,8 +329,7 @@ unsigned char gizwits_reply_pack(gizwits_pack* pg_pack, unsigned char command)
 				
 				gizwits_pack_char(pg_pack, MCU_GET_DEV_MSG_REPLY, data, 106, 0); 
 			
-			} 
-		
+			}	
 			 
 			break;
 		
@@ -323,14 +348,85 @@ unsigned char gizwits_reply_pack(gizwits_pack* pg_pack, unsigned char command)
 				break;
 			}
 			
-		case MCU_REPLAY_MDL_DATA:
-			gizwits_pack_char(pg_pack, MCU_REPLAY_MDL_DATA, (void*)0, 0, 0);
+		case MCU_REPLAY_MDL_DATA:    /* 返回模块数据给通信模组 */
+		{
+			unsigned char data[60] = {0};
+			unsigned short t = 0;
+			
+			if(0x11==gizwits_s.action)
+			{
+				gizwits_pack_char(pg_pack, MCU_REPLAY_MDL_DATA, (void*)0, 0, 0);
+				return 2;
+	
+			}else if(0x12==gizwits_s.action)
+			{
+				/* 传输数据 */
+				data[0] = 0x13;
+				data[1] = 0x01;
+				data[2] = 0xFF;
+				
+				data[3] = 0x01;
+				data[4] = 0xFF;
+				
+				/* 湿度 */
+				data[5] = (unsigned char)dht11->RH; 
+
+				/* TVOC PPM */				
+				t = (unsigned short)(air->air_ppm*10);
+				data[6] = (unsigned char)((t>>8)&0x0F);
+				data[7] = (unsigned char)(t&0x0F);
+				
+				/* TEMP */
+				t = (unsigned short)(dht11->TEMP*10);
+				data[8] = (unsigned char)((t>>8)&0x0F);
+				data[9] = (unsigned char)(t&0x0F);
+				
+				/* 经纬度坐标 */
+				for(t=10; t<46; ++t)
+				{
+					data[t] = t;
+				}
+				
+				gizwits_pack_char(pg_pack, MCU_REPLAY_MDL_DATA, (const char*)data, 46, 0);
+			}
 			break;
+		}
 		
 		/* 发送数据至通信模块 */	
 		case MCU_SEND_DATA_MDL:
+		{
+			unsigned char data[60] = {0};
+			unsigned short t = 0;
+			/* 传输数据 */
+			data[0] = 0x14;
+			data[1] = 0x01;
+			data[2] = 0xFF;
 			
+			data[3] = 0x01;
+			data[4] = 0xFF;
+			
+			/* 湿度 */
+			data[5] = (unsigned char)dht11->RH; 
+
+			/* TVOC PPM */				
+			t = (unsigned short)(air->air_ppm*10);
+			data[6] = (unsigned char)((t>>8)&0x0F);
+			data[7] = (unsigned char)(t&0x0F);
+			
+			/* TEMP */
+			t = (unsigned short)(dht11->TEMP*10);
+			data[8] = (unsigned char)((t>>8)&0x0F);
+			data[9] = (unsigned char)(t&0x0F);
+			
+			/* 经纬度坐标 */
+			for(t=10; t<46; ++t)
+			{
+				data[t] = t;
+			}
+			
+			gizwits_pack_char(pg_pack, MCU_SEND_DATA_MDL, (const char*)data, 46, 0);
 			break;
+		}
 			
 		default: return 0;
 	}
@@ -349,13 +445,13 @@ unsigned char  gizwits_data_pack(gizwits_pack* pg_pack, char* data, unsigned int
 	temp = data_class;
 	
 	/* 所有的数据有效 */ 
-	if((temp&DATA_VALID)==DATA_VALID)
-	{
-		if(len!=51) return 0;
-		gizwits_pack_char(pg_pack, MCU_SEND_DATA_MDL, (const char*)data, 51, 0);	
-		gizwits_s.mdl_reply = 1;	
-	}
-	
+//	if((temp&DATA_VALID)==DATA_VALID)
+//	{
+//		if(len!=51) return 0;
+//		gizwits_pack_char(pg_pack, MCU_SEND_DATA_MDL, (const char*)data, 51, 0);	
+//		gizwits_s.mdl_reply = 1;	
+//	}
+//	
 	return 1;
 
 }

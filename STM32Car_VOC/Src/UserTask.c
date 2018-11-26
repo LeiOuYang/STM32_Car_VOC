@@ -28,7 +28,7 @@ void app_run(void)
 //	osThreadCreate(osThread(OledTask), NULL);	
 
 	/* gizwits通信模组接收数据处理任务 */
-	osThreadDef(GIZWITSTASK, gizwits_data_process_task, osPriorityBelowNormal, 0, 768);
+	osThreadDef(GIZWITSTASK, gizwits_data_process_task, osPriorityAboveNormal, 0, 768);
 	osThreadCreate(osThread(GIZWITSTASK), NULL);
 	
 	/* 串口2接收数据处理任务,TVOC数据解析	*/
@@ -40,7 +40,7 @@ void app_run(void)
 	osThreadCreate(osThread(GPSRXTask), NULL);
 	
 	/* 与通信模组通信任务 */
-	osThreadDef(UART1TXTask, usart1_send_task, osPriorityAboveNormal, 0, 256+128);
+	osThreadDef(UART1TXTask, usart1_send_task, osPriorityHigh, 0, 256+128);
 	osThreadCreate(osThread(UART1TXTask), NULL);
 	
 	/* 串口2发送数据处理任务, 更新LCD显示 */
@@ -260,7 +260,7 @@ static void usart1_receive_task(void const* arg)
 	
 	while(1)
 	{
-		osDelay(20);
+		osDelay(50);
 		restart_usart(&huart1);
 		data_len = readBuffLen(USART1_ID); /* 读取串口1缓冲队列中的数据长度 */
 		if(data_len>0)
@@ -1085,6 +1085,7 @@ static void gizwits_data_process_task(void const* arg)
 	//unsigned char gizwits_data[150] = {0};
 	unsigned int i = 0;
 	unsigned char count = 0;
+	unsigned char re = 0;
 	
 	gizwits_pack* p_gizwits_pack_send;
 	gizwits_pack gizwits_pack_send_buff;
@@ -1097,7 +1098,7 @@ static void gizwits_data_process_task(void const* arg)
 	
 	while(1)
 	{
-		osDelay(10);
+		osDelay(50);
 		
 		restart_usart(&huart1);
 		data_len = readBuffLen(USART1_ID); /* 读取串口1缓冲队列中的数据长度 */
@@ -1121,10 +1122,17 @@ static void gizwits_data_process_task(void const* arg)
 				count = 0;
 				if(GIZWITS_RESULT_OK==gizwits_parse_char(buff[i], &gizwits_pack_rec_buff, &gizwits_result_rec))
 				{
-					if(gizwits_data_process(&gizwits_pack_rec_buff, p_gizwits_pack_send))
+					re = gizwits_data_process(&gizwits_pack_rec_buff, p_gizwits_pack_send);
+					if(re)
 					{
 						/* 发送数据 */
-						write(USART1_ID, (char*)p_gizwits_pack_send, p_gizwits_pack_send->length);						
+						write(USART1_ID, (char*)p_gizwits_pack_send, p_gizwits_pack_send->length);			
+						if( 2==re )
+						{
+							gizwits_reply_pack(p_gizwits_pack_send, MCU_SEND_DATA_MDL);
+							write(USART1_ID, (char*)p_gizwits_pack_send, p_gizwits_pack_send->length);	
+						}
+								
 						/* 模组请求发送数据 */
 						if(p_gizwits_status->atr_flag&&p_gizwits_status->atr_value)
 						{

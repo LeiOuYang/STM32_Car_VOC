@@ -4,6 +4,11 @@
 
 #include "gizwits_type.h"
 #include "AwesomeDataProcess.h"
+#include "dht11.h"
+#include "nmea0183.h"
+#include "kqm28xx.h"
+
+void gizwits_set_param(DHT11* dht11, NMEA0183* nmea_data, AirSensor* pair);
 
 gizwits_pack* get_gizwits(void);
 unsigned char gizwits_init(void);

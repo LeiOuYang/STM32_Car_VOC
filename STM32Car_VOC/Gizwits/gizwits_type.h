@@ -35,16 +35,17 @@
 	
 	
 	/* 用户数据有效位定义 */
-	#define ALL_DATA_BIT_VALID 	0XFF/* 所有数据位有效 */	
-	#define GET_ALL_DATA_VALID  (0X01<<0)
-	#define TVOC_ERROR_VALID    (0X01<<1)
-	#define TEMP_ERROR_VALID	(0X01<<2)
-	#define GPS_ERROR_VALID 	(0X01<<3) 
-	#define LOCATION_DATA_VALID	(0X01<<4)
-	#define TEMP_DATA_VALID		(0X01<<5)
-	#define RH_DATA_VALID		(0X01<<6)
-	#define TVOC_PPM_DATA_VALID (0X01<<7)
-	#define DATA_VALID (LOCATION_DATA_VALID|TEMP_DATA_VALID|RH_DATA_VALID|TVOC_PPM_DATA_VALID)
+	#define ALL_DATA_BIT_VALID 	0X01FF/* 所有数据位有效 */	
+	#define GET_ALL_DATA_VALID  (unsigned short)(0X01<<0)
+	#define GPS_ERROR_VALID    	(unsigned short)(0X01<<1)
+	#define HDT11_ERROR_VALID		(unsigned short)(0X01<<2)
+	#define TVOC_ERROR_VALID 		(unsigned short)(0X01<<3) 
+	#define RGB_VALID						(unsigned short)(0X01<<4)
+	#define BEEP_VALID					(unsigned short)(0X01<<5)
+	#define HR_VALID						(unsigned short)(0X01<<6)
+	#define TVOC_PPM_DATA_VALID (unsigned short)(0X01<<7)
+	#define TEMP_DATA_VALID 		(unsigned short)(0X01<<8)
+	#define GPS_LOCATION_VALID 	(unsigned short)(0X01<<9)
 	
 	/* MCU设备信息，硬件、软件版本号，产品密钥，产品标志码 */ 
 	#define GIZWITS_USART_VERSION  "00000004"   
@@ -122,8 +123,9 @@
 		unsigned char rssi: 3;
 		unsigned char app_exist: 1;	
 		unsigned char mdl_reply;
-		unsigned char atr_flag;
 		unsigned char atr_value; 
+		unsigned char action;
+		unsigned short atr_flag;
 	}gizwits_status; 
 
 #endif
