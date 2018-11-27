@@ -766,6 +766,8 @@ static void init_system(void)
 	
 	sys_flag.open_rgb = 0;
 	sys_flag.sensor_healthy = 0;
+	
+	gizwits_set_param(&dht11, &nmea_data, p_air_sensor);
 }
 /* function code end */
 
@@ -1086,6 +1088,7 @@ static void gizwits_data_process_task(void const* arg)
 	unsigned int i = 0;
 	unsigned char count = 0;
 	unsigned char re = 0;
+//	TickType_t old_time = 0;
 	
 	gizwits_pack* p_gizwits_pack_send;
 	gizwits_pack gizwits_pack_send_buff;
@@ -1095,10 +1098,11 @@ static void gizwits_data_process_task(void const* arg)
 	gizwits_init();	
 	p_gizwits_pack_send = get_gizwits();
 	p_gizwits_status = (gizwits_status*)get_gizwits_status();
+//	old_time = xTaskGetTickCount();
 	
 	while(1)
 	{
-		osDelay(50);
+		osDelay(40);
 		
 		restart_usart(&huart1);
 		data_len = readBuffLen(USART1_ID); /* 读取串口1缓冲队列中的数据长度 */

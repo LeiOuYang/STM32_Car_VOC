@@ -232,11 +232,11 @@ unsigned char gizwits_data_process(gizwits_pack* pg_pack, gizwits_pack* pg_pack_
 				len = pg_pack->data_len;
 				//data = (unsigned char)pg_pack->data[len-2-5] + (((unsigned short)pg_pack->data[len-1-5])<<8);
 							
-				gizwits_s.app_exist = (pg_pack->data[len-2-5]&0x08)==0x08;
-				gizwits_s.base_station_exist = (pg_pack->data[len-1-5]&0x1A)==0x1A;  
-				gizwits_s.m2m_server_exist = (pg_pack->data[len-1-5]&0x2A)==0x2A; 
+				gizwits_s.app_exist = (pg_pack->data[0]&0x08)==0x08;
+				gizwits_s.base_station_exist = (pg_pack->data[1]&0x1A)==0x1A;  
+				gizwits_s.m2m_server_exist = (pg_pack->data[1]&0x2A)==0x2A; 
 				gizwits_s.gizwits_exits = 1;
-				gizwits_s.rssi = pg_pack->data[len-2-5]&0x07;
+				gizwits_s.rssi = pg_pack->data[0]&0x07;
 				
 				break;
 			}
@@ -306,6 +306,7 @@ unsigned char gizwits_reply_pack(gizwits_pack* pg_pack, unsigned char command)
 		case MCU_GET_DEV_MSG_REPLY:
 			{
 				unsigned char data[120] = {0};
+				static unsigned int count = 0;
 				
 				/* 复制版本信息等字符串 */
 				string_copy((char*)data, MCU_DEV_VERSION);
@@ -327,7 +328,10 @@ unsigned char gizwits_reply_pack(gizwits_pack* pg_pack, unsigned char command)
 				/* 32字节产品密钥 */
 				string_copy((char*)&data[sizeof(MCU_DEV_VERSION) + 9], GIZWITS_PRODUCT_SECRET);
 				
-				gizwits_pack_char(pg_pack, MCU_GET_DEV_MSG_REPLY, data, 106, 0); 
+				if(count++%12==0) /* 模块感觉有bug，不需要及时响应该指令，等待模块自我配置完成 */
+					gizwits_pack_char(pg_pack, MCU_GET_DEV_MSG_REPLY, data, 106, 0); 
+				
+				return 3;
 			
 			}	
 			 
