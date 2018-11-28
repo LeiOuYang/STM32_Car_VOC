@@ -24,6 +24,36 @@
 	#define OLED_AUTHOR_UPDATE_YES (1<<1)
 	#define OLED_AUTHOR_UPDATE_NO (~(1<<1))
 	
+	typedef enum RGB_CONTROL
+	{
+		RGB_CLOSE_ENABLE = 0X00,
+		RGB_RED_ENABLE,
+		RGB_GREEN_ENABLE,
+		RGB_BLUE_ENABLE,
+		RGB_OPEN_ENABLE,
+		RGB_LOW_SPEED_ENABLE,
+		RGB_MED_SPEED_ENABLE,
+		RGB_QUCK_SPEED_ENABLE,
+		RGB_DEFAULET
+	}RGB_CONTROL;
+	
+	typedef enum RGB_COLOR
+	{
+		RGB_COLOR_COLSE = 0X00,
+		RGB_COLOR_RED,
+		RGB_COLOR_GREEN,
+		RGB_COLOR_BLUE
+	}RGB_COLOR;
+	
+	typedef enum BEEP_CONTROL
+	{
+		BEEP_CLOSE_ENABLE = 0X00,
+		BEEP_LOW_ENBALE,
+		BEEP_MED_SPEED_ENABLE,
+		BEEP_QUCK_SPEED_ENABLE,
+		BEEP_DEFAULET
+	}BEEP_CONTROL;
+
 	typedef enum SENSOR_ERROR_STATUS
 	{
 		/* bit 1表示错误或者不存在    0-存在  */
@@ -47,6 +77,15 @@
 		
 		unsigned char sensor_healthy;  /* 传感器错误标志 枚举SENSOR_ERROR_STATUS */
 	}system_flag;
+	
+	typedef struct _dev_control
+	{
+		unsigned char rgb_enable : 1;
+		unsigned char beep_enable : 1;
+		unsigned char rgb_color;	
+		unsigned short beep_speed;
+		unsigned short rgb_speed;
+	}dev_control;
 	
 	static xSemaphoreHandle mutex_usart1_tx;
 	static xSemaphoreHandle mutex_usart2_tx;
@@ -88,6 +127,7 @@
 	static void beep_fun(void);
 	
 	static void gizwits_data_process_task(void const* arg);
+	static void gizwits_process_data_node(const gizwits_status* const pgs);
 	
 	extern IWDG_HandleTypeDef hiwdg;
 	extern UART_HandleTypeDef huart1;

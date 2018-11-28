@@ -11,6 +11,7 @@ extern const unsigned char chinese16_16[][32];
 static DHT11 dht11;
 static LCD lcd;
 static NMEA0183 nmea_data;
+static dev_control gizwits_dev_control = {0,0,0,0,0};
 
 void app_run(void)
 {
@@ -1143,6 +1144,9 @@ static void gizwits_data_process_task(void const* arg)
 							/* 处理数据,并准备发送 */
 							
 						}
+						
+						/* 处理模组控制设备代码 */
+						gizwits_process_data_node(p_gizwits_status);
 					}
 				}
 			}
@@ -1154,6 +1158,98 @@ static void gizwits_data_process_task(void const* arg)
 				count = 250;
 			}
 		}
+	}
+}
+
+static void gizwits_process_data_node(const gizwits_status* const pgs)
+{
+		
+	if((void*)0==pgs) return;
+	
+	if(0==pgs->data_node)
+	{
+		gizwits_dev_control.beep_enable = 0;
+		gizwits_dev_control.rgb_enable = 0;
+	}
+	
+	switch((pgs->data_node>>1)&0x07)
+	{
+		case RGB_CLOSE_ENABLE:
+			
+			gizwits_dev_control.rgb_enable = 0;
+			gizwits_dev_control.rgb_color = RGB_COLOR_COLSE;
+			break;
+		
+		case RGB_RED_ENABLE:
+			
+			gizwits_dev_control.rgb_enable = 1;
+			gizwits_dev_control.rgb_color = RGB_COLOR_RED;
+			break;
+		
+		case RGB_GREEN_ENABLE:
+			
+			gizwits_dev_control.rgb_enable = 1;
+			gizwits_dev_control.rgb_color = RGB_COLOR_GREEN;
+			break;
+		
+		case RGB_BLUE_ENABLE:
+			
+			gizwits_dev_control.rgb_enable = 1;
+			gizwits_dev_control.rgb_color = RGB_COLOR_BLUE;
+			break;
+		
+		case RGB_OPEN_ENABLE:
+			
+			gizwits_dev_control.rgb_enable = 1;
+			break;
+		
+		case RGB_LOW_SPEED_ENABLE:
+			
+			gizwits_dev_control.rgb_enable = 1;
+			gizwits_dev_control.rgb_speed = 1000;  /* 1000毫秒一次 */
+			break;
+		
+		case RGB_MED_SPEED_ENABLE:
+			
+			gizwits_dev_control.rgb_enable = 1;
+			gizwits_dev_control.rgb_speed = 500;  /* 500毫秒一次 */
+			break;
+		
+		case RGB_QUCK_SPEED_ENABLE:
+			
+			gizwits_dev_control.rgb_enable = 1;
+			gizwits_dev_control.rgb_speed = 50;  /* 50毫秒一次 */
+			break;
+		
+		default: break;
+	}
+	
+	switch((pgs->data_node>>4)&0x07)
+	{
+		case BEEP_CLOSE_ENABLE:
+			
+			gizwits_dev_control.beep_enable = 0;
+		  break;
+		
+		case BEEP_LOW_ENBALE:
+		
+			gizwits_dev_control.beep_enable = 1;		
+			gizwits_dev_control.beep_speed = 2000;
+			break;		
+		
+		case BEEP_MED_SPEED_ENABLE:
+			
+			gizwits_dev_control.beep_enable = 1;		
+			gizwits_dev_control.beep_speed = 1000;
+			break;		
+		
+		case BEEP_QUCK_SPEED_ENABLE:
+			
+			gizwits_dev_control.beep_enable = 1;		
+			gizwits_dev_control.beep_speed = 500;
+			break;		
+		
+		default: break;
 	}
 }
 	

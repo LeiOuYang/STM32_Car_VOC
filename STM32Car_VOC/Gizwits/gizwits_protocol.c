@@ -9,6 +9,8 @@ static DHT11* dht11;
 static NMEA0183* nmea_data;
 static AirSensor* air;
 
+static void gizwits_process_node(unsigned short flag, unsigned char value);
+
 void gizwits_set_param(DHT11* pdht11, NMEA0183* pnmea_data, AirSensor* pair)
 {
 	if((void*)0==pdht11 || (void*)0==pnmea_data || (void*)0==pair) return;
@@ -47,6 +49,8 @@ unsigned char gizwits_init(void)
 	gizwits_s.atr_flag = 0;
 	gizwits_s.atr_value = 0;
 	gizwits_s.mdl_reply = 0;
+	gizwits_s.data_node = 0;
+	gizwits_s.action = 0;
 	
 	return memery_set((char*)&gizwits, sizeof(gizwits_pack), 0);
 }
@@ -274,6 +278,7 @@ unsigned char gizwits_data_process(gizwits_pack* pg_pack, gizwits_pack* pg_pack_
 					}
 				}else if(0x11==pg_pack->data[0])
 				{
+					gizwits_process_node(gizwits_s.atr_flag, gizwits_s.atr_value);   /* 处理数据节点 */
 					if(gizwits_s.atr_flag&GET_ALL_DATA_VALID && gizwits_s.atr_value&GET_ALL_DATA_VALID) /* 获取所有的数据 */
 					{
 						return gizwits_reply_pack(pg_pack_send, MCU_REPLAY_MDL_DATA);
@@ -458,5 +463,30 @@ unsigned char  gizwits_data_pack(gizwits_pack* pg_pack, char* data, unsigned int
 //	
 	return 1;
 
+}
+
+
+static void gizwits_process_node(unsigned short flag, unsigned char value)
+{
+	if(flag&GET_ALL_DATA_VALID)
+	{
+		gizwits_s.data_node &= 0xFE;
+		gizwits_s.data_node |= (0x01&value);
+	   return;
+	}
+	
+	if(flag&RGB_VALID)
+	{
+		gizwits_s.data_node &= 0xF1;
+		gizwits_s.data_node |= (0x0E&(value<<1));
+		return;
+	}
+	
+	if(flag&BEEP_VALID)
+	{
+		gizwits_s.data_node &= 0xCF;
+		gizwits_s.data_node |= (0x30&(value<<4));
+		return;
+	}
 }
 

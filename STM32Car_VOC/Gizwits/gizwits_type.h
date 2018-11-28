@@ -125,6 +125,7 @@
 		unsigned char mdl_reply;
 		unsigned char atr_value; 
 		unsigned char action;
+		unsigned char data_node;  /* 数据节点，控制MCU设备使用 */
 		unsigned short atr_flag;
 	}gizwits_status; 
 
