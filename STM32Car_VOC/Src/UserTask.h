@@ -42,7 +42,9 @@
 		RGB_COLOR_COLSE = 0X00,
 		RGB_COLOR_RED,
 		RGB_COLOR_GREEN,
-		RGB_COLOR_BLUE
+		RGB_COLOR_BLUE,
+		RGB_COLOR_YELLOW,
+		RGB_COLOR_PURPLE
 	}RGB_COLOR;
 	
 	typedef enum BEEP_CONTROL
@@ -128,6 +130,8 @@
 	
 	static void gizwits_data_process_task(void const* arg);
 	static void gizwits_process_data_node(const gizwits_status* const pgs);
+	static unsigned char gizwits_control_rgb(unsigned int base_time, unsigned char color, unsigned int blink_time);
+	static void rgb_color(unsigned char color, unsigned char status);
 	
 	extern IWDG_HandleTypeDef hiwdg;
 	extern UART_HandleTypeDef huart1;

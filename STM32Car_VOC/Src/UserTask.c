@@ -128,6 +128,12 @@ static void rgb_blink_task(void const* arg)
 	{
 		osDelay(20);  /* 50hz */
 		
+		/* 设备控制有效 则返回  */
+		if(gizwits_control_rgb(20, gizwits_dev_control.rgb_color, gizwits_dev_control.rgb_speed))
+		{
+			return;
+		}
+		
 		if(!sys_flag.open_rgb && 0==sys_flag.rgb_sw)
 		{
 			RGB1_Close();
@@ -1161,6 +1167,8 @@ static void gizwits_data_process_task(void const* arg)
 	}
 }
 
+
+/* gizwits 控制设备代码 */
 static void gizwits_process_data_node(const gizwits_status* const pgs)
 {
 		
@@ -1252,7 +1260,106 @@ static void gizwits_process_data_node(const gizwits_status* const pgs)
 		default: break;
 	}
 }
-	
 
+/* rgb灯控制，传入参数：基础时间，显示颜色，闪烁时间   时间毫秒单位  如果控制有效返回 1 */
+static unsigned char gizwits_control_rgb(unsigned int base_time, unsigned char color, unsigned int blink_time)
+{
+	static unsigned int count = 0;
+	unsigned int max_count = 0;
+	
+	if(0==base_time || 0==blink_time || blink_time<base_time) return 0;
+	
+	max_count = blink_time/base_time;
+	
+	if(!gizwits_dev_control.rgb_enable)  /* rgb控制不使能 */
+	{
+		/* 技术器清0，关闭rgb灯 */
+		count = 0;
+		return 0;
+	}else
+	{
+		unsigned int t = count/max_count;
+		++count;
+		if(0==t)
+			rgb_color(color, 1);
+		else if(1==t)
+			rgb_color(color, 0);
+		else if(2==t)
+			count = 0;
+		return 1;
+	}	
+}
+
+/* 控制RGB颜色状态  开启或者关闭  开启为1，关闭为0*/
+static void rgb_color(unsigned char color, unsigned char status)
+{
+	switch(color)
+	{
+		case RGB_COLOR_COLSE:
+			RGB1_Close();
+			RGB2_Close();
+			break;
+		
+		case RGB_COLOR_RED:
+			if(status)
+			{
+				RGB1_Red();
+				RGB2_Red();
+			}else
+			{
+				RGB1_Close();
+				RGB2_Close();
+			}
+			break;
+			
+		case RGB_COLOR_GREEN:
+			if(status)
+			{
+				RGB1_Green();
+				RGB2_Green();
+			}else
+			{
+				RGB1_Close();
+				RGB2_Close();
+			}
+			break;
+			
+		case RGB_COLOR_BLUE:
+			if(status)
+			{
+				RGB1_Blue();
+				RGB2_Blue();
+			}else
+			{
+				RGB1_Close();
+				RGB2_Close();
+			}
+			break;
+			
+		case RGB_COLOR_YELLOW:
+			if(status)
+			{
+				RGB1_Yellow();
+				RGB2_Yellow();
+			}else
+			{
+				RGB1_Close();
+				RGB2_Close();
+			}
+			break;
+		case RGB_COLOR_PURPLE:
+			if(status)
+			{
+				RGB1_Purple();
+				RGB2_Purple();
+			}else
+			{
+				RGB1_Close();
+				RGB2_Close();
+			}
+			break;
+		default: break;
+	}
+}
 
 /* function code end */
