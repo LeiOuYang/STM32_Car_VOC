@@ -17,6 +17,7 @@ GIZWITS_RESULT gizwits_parse_char(unsigned char c, gizwits_pack* pg_pack, gizwit
 unsigned char gizwits_data_process(gizwits_pack* pg_pack, gizwits_pack* pg_pack_send);
 
 unsigned char gizwits_reply_pack(gizwits_pack* pg_pack, unsigned char command);
+unsigned char gizwits_is_link(void);
 
 #endif
 

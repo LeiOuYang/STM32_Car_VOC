@@ -132,6 +132,7 @@
 	static void gizwits_process_data_node(const gizwits_status* const pgs);
 	static unsigned char gizwits_control_rgb(unsigned int base_time, unsigned char color, unsigned int blink_time);
 	static void rgb_color(unsigned char color, unsigned char status);
+	static void gizwits_set_error(gizwits_status* const pgs);
 	
 	extern IWDG_HandleTypeDef hiwdg;
 	extern UART_HandleTypeDef huart1;

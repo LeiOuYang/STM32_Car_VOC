@@ -279,7 +279,7 @@ unsigned char gizwits_data_process(gizwits_pack* pg_pack, gizwits_pack* pg_pack_
 				}else if(0x11==pg_pack->data[0])
 				{
 					gizwits_process_node(gizwits_s.atr_flag, gizwits_s.atr_value);   /* 处理数据节点 */
-					if(gizwits_s.atr_flag&GET_ALL_DATA_VALID && gizwits_s.atr_value&GET_ALL_DATA_VALID) /* 获取所有的数据 */
+					if((gizwits_s.atr_flag&GET_ALL_DATA_VALID) && (gizwits_s.atr_value&GET_ALL_DATA_VALID)) /* 获取所有的数据 */
 					{
 						return gizwits_reply_pack(pg_pack_send, MCU_REPLAY_MDL_DATA);
 					}
@@ -374,8 +374,8 @@ unsigned char gizwits_reply_pack(gizwits_pack* pg_pack, unsigned char command)
 				data[1] = 0x01;
 				data[2] = 0xFF;
 				
-				data[3] = 0x01;
-				data[4] = 0xFF;
+				data[3] = gizwits_s.node.node[1];
+				data[4] = gizwits_s.node.node[0];
 				
 				/* 湿度 */
 				data[5] = (unsigned char)dht11->RH; 
@@ -411,8 +411,8 @@ unsigned char gizwits_reply_pack(gizwits_pack* pg_pack, unsigned char command)
 			data[1] = 0x01;
 			data[2] = 0xFF;
 			
-			data[3] = 0x01;
-			data[4] = 0xFF;
+			data[3] = gizwits_s.node.node[1];
+			data[4] = gizwits_s.node.node[0];
 			
 			/* 湿度 */
 			data[5] = (unsigned char)dht11->RH; 
@@ -466,26 +466,41 @@ unsigned char  gizwits_data_pack(gizwits_pack* pg_pack, char* data, unsigned int
 }
 
 
+/* 判断模块是否成功连接服务器 */
+unsigned char gizwits_is_link(void)
+{
+	/* 成功连接上基站和服务器 */
+	if(gizwits_s.gizwits_exits && gizwits_s.base_station_exist && gizwits_s.m2m_server_exist)
+	{
+		return 1;
+	}
+	
+	return 0;
+}
+
 static void gizwits_process_node(unsigned short flag, unsigned char value)
 {
 	if(flag&GET_ALL_DATA_VALID)
 	{
-		gizwits_s.data_node &= 0xFE;
+		gizwits_s.data_node &= 0xFE;   					/* bit0 */
 		gizwits_s.data_node |= (0x01&value);
-	   return;
+		gizwits_s.node.data_node.get_data = (0x01&value);
+	  return;
 	}
 	
 	if(flag&RGB_VALID)
 	{
-		gizwits_s.data_node &= 0xF1;
+		gizwits_s.data_node &= 0xF1;					  /* bit1-bit3 */
 		gizwits_s.data_node |= (0x0E&(value<<1));
+		gizwits_s.node.data_node.rgb_control = 0x07&value;
 		return;
 	}
 	
 	if(flag&BEEP_VALID)
 	{
-		gizwits_s.data_node &= 0xCF;
+		gizwits_s.data_node &= 0xCF;         /* bit4-bit5 */
 		gizwits_s.data_node |= (0x30&(value<<4));
+		gizwits_s.node.data_node.beep_control = 0x02&value;
 		return;
 	}
 }

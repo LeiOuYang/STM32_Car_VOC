@@ -113,6 +113,24 @@
 		GIZWITS_RESULT_OK,
 	}GIZWITS_RESULT;
 	
+	/* 数据节点定义 */
+	typedef struct gizwits_data_node
+	{
+		unsigned short get_data : 1;
+		unsigned short gps_error : 1;
+		unsigned short dht11_error : 1;
+		unsigned short tvoc_error : 1;
+		unsigned short rgb_control : 3;
+		unsigned short beep_control : 2;
+		unsigned short : 7;
+	}gizwits_data_node;
+	
+	typedef union un_data_node
+	{
+		gizwits_data_node data_node;
+		char node[2];
+	}un_data_node;
+	
 	
 /* 通信模块状态 */
 	typedef struct gizwits_status
@@ -125,9 +143,11 @@
 		unsigned char mdl_reply;
 		unsigned char atr_value; 
 		unsigned char action;
-		unsigned char data_node;  /* 数据节点，控制MCU设备使用 */
+		unsigned char data_node;  					/* 数据节点，控制MCU设备使用 */
 		unsigned short atr_flag;
+		un_data_node node;  								/* 设备节点状态，设备返回状态时使用 */
 	}gizwits_status; 
+	
 
 #endif
 

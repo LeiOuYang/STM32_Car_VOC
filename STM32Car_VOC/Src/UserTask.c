@@ -1111,6 +1111,8 @@ static void gizwits_data_process_task(void const* arg)
 	{
 		osDelay(40);
 		
+		gizwits_set_error(p_gizwits_status);   /* 设置错误 */
+		
 		restart_usart(&huart1);
 		data_len = readBuffLen(USART1_ID); /* 读取串口1缓冲队列中的数据长度 */
 		
@@ -1288,6 +1290,17 @@ static unsigned char gizwits_control_rgb(unsigned int base_time, unsigned char c
 			count = 0;
 		return 1;
 	}	
+}
+
+static void gizwits_set_error(gizwits_status* const pgs)
+{
+	if((void*)0==pgs) return;
+	
+	pgs->node.data_node.gps_error = (unsigned char)(nmea_data.gpsData.status>=2);
+	pgs->node.data_node.tvoc_error = SENSOR_TVOC_HEALTHY==(sys_flag.sensor_healthy&SENSOR_TVOC_HEALTHY);
+	pgs->node.data_node.dht11_error = SENSOR_DHT11_HEALTHY==(sys_flag.sensor_healthy&SENSOR_DHT11_HEALTHY);
+	
+	return;
 }
 
 /* 控制RGB颜色状态  开启或者关闭  开启为1，关闭为0*/
