@@ -17,11 +17,11 @@ void app_run(void)
 {
 	init_system();
 	/* 喂狗任务 */
-	osThreadDef(Task50MSThread, task_50ms, osPriorityIdle, 0, 256);
+	osThreadDef(Task50MSThread, task_50ms, osPriorityIdle, 0, 128);
 	osThreadCreate(osThread(Task50MSThread), NULL);	
 	
 	/* RGB闪烁任务 */
-	osThreadDef(RGBBlinkThread, rgb_blink_task, osPriorityIdle, 0, 128);
+	osThreadDef(RGBBlinkThread, rgb_blink_task, osPriorityIdle, 0, 128+64);
 	osThreadCreate(osThread(RGBBlinkThread), NULL);
 	
 	/* 开启更新显示OLED显示屏幕 */
@@ -131,7 +131,7 @@ static void rgb_blink_task(void const* arg)
 		/* 设备控制有效 则返回  */
 		if(gizwits_control_rgb(20, gizwits_dev_control.rgb_color, gizwits_dev_control.rgb_speed))
 		{
-			return;
+			continue;
 		}
 		
 		if(!sys_flag.open_rgb && 0==sys_flag.rgb_sw)
@@ -1188,6 +1188,7 @@ static void gizwits_process_data_node(const gizwits_status* const pgs)
 			
 			gizwits_dev_control.rgb_enable = 0;
 			gizwits_dev_control.rgb_color = RGB_COLOR_COLSE;
+			gizwits_dev_control.rgb_speed = 0; 
 			break;
 		
 		case RGB_RED_ENABLE:
@@ -1211,6 +1212,7 @@ static void gizwits_process_data_node(const gizwits_status* const pgs)
 		case RGB_OPEN_ENABLE:
 			
 			gizwits_dev_control.rgb_enable = 1;
+			gizwits_dev_control.rgb_speed = 0;
 			break;
 		
 		case RGB_LOW_SPEED_ENABLE:
@@ -1228,7 +1230,7 @@ static void gizwits_process_data_node(const gizwits_status* const pgs)
 		case RGB_QUCK_SPEED_ENABLE:
 			
 			gizwits_dev_control.rgb_enable = 1;
-			gizwits_dev_control.rgb_speed = 50;  /* 50毫秒一次 */
+			gizwits_dev_control.rgb_speed = 100;  /* 100毫秒一次 */
 			break;
 		
 		default: break;
@@ -1267,21 +1269,34 @@ static void gizwits_process_data_node(const gizwits_status* const pgs)
 static unsigned char gizwits_control_rgb(unsigned int base_time, unsigned char color, unsigned int blink_time)
 {
 	static unsigned int count = 0;
+	static unsigned char old_color = RGB_COLOR_COLSE;
 	unsigned int max_count = 0;
+	unsigned int t = 0;
 	
-	if(0==base_time || 0==blink_time || blink_time<base_time) return 0;
+	if(0==blink_time && color!=RGB_COLOR_COLSE)
+	{
+		rgb_color(color, 1);
+		return 1;
+	}
 	
-	max_count = blink_time/base_time;
+	if(0==base_time) return 0;
 	
-	if(!gizwits_dev_control.rgb_enable)  /* rgb控制不使能 */
+	max_count = blink_time/base_time;	
+	
+	if(0==gizwits_dev_control.rgb_enable)  /* rgb控制不使能 */
 	{
 		/* 技术器清0，关闭rgb灯 */
 		count = 0;
 		return 0;
 	}else
 	{
-		unsigned int t = count/max_count;
+		if(old_color!=color)
+		{
+			count = 0;
+			old_color = color;
+		}
 		++count;
+		t = count/max_count;		
 		if(0==t)
 			rgb_color(color, 1);
 		else if(1==t)
