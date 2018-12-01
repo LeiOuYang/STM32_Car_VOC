@@ -1095,6 +1095,8 @@ static void gizwits_data_process_task(void const* arg)
 	unsigned int i = 0;
 	unsigned char count = 0;
 	unsigned char re = 0;
+	unsigned char re_send_enable = 0;
+	unsigned char re_send_count = 0;
 //	TickType_t old_time = 0;
 	
 	gizwits_pack* p_gizwits_pack_send;
@@ -1111,9 +1113,22 @@ static void gizwits_data_process_task(void const* arg)
 	{
 		osDelay(40);
 		
+		restart_usart(&huart1);
+		
 		gizwits_set_error(p_gizwits_status);   /* 设置错误 */
 		
-		restart_usart(&huart1);
+		if(re_send_enable)
+		{
+			++re_send_count;
+			if(25==re_send_count)
+			{
+				re_send_count = 0;
+				re_send_enable = 0;
+				gizwits_reply_pack(p_gizwits_pack_send, MCU_SEND_DATA_MDL);
+				write(USART1_ID, (char*)p_gizwits_pack_send, p_gizwits_pack_send->length);
+			}				
+		}
+		
 		data_len = readBuffLen(USART1_ID); /* 读取串口1缓冲队列中的数据长度 */
 		
 		if(data_len>0)
@@ -1142,8 +1157,8 @@ static void gizwits_data_process_task(void const* arg)
 						write(USART1_ID, (char*)p_gizwits_pack_send, p_gizwits_pack_send->length);			
 						if( 2==re )
 						{
-							gizwits_reply_pack(p_gizwits_pack_send, MCU_SEND_DATA_MDL);
-							write(USART1_ID, (char*)p_gizwits_pack_send, p_gizwits_pack_send->length);	
+							re_send_count = 0;
+							re_send_enable = 1;
 						}
 								
 						/* 模组请求发送数据 */

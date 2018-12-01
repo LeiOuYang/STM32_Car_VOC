@@ -62,6 +62,7 @@ unsigned char gizwits_pack_char(gizwits_pack* pgp, unsigned char command, const 
 {
 	unsigned short count = 0;
 	unsigned int crc_sum = 0;
+	unsigned int re_count = 0;
 	
 	if( (void*)0 == pgp ) return 0;
 	
@@ -75,25 +76,28 @@ unsigned char gizwits_pack_char(gizwits_pack* pgp, unsigned char command, const 
 	crc_sum += pgp->seq;
 	
 	pgp->flag = ((flag&0x00ff)<<8) | ((flag&0xff00)>>8);
-	crc_sum += flag;
+	crc_sum += (flag>>8)&0x0ff;
+	crc_sum += flag&0x0ff;
 	
 	while(len--)
 	{
-		pgp->data[count] = data[count];
+		pgp->data[count+re_count] = data[count];
 		crc_sum += data[count];
 		if(0xff==data[count])
 		{
-			++count;
-			pgp->data[count] = 0x55;
+			++re_count;
+			pgp->data[count+re_count] = 0x55;
 			crc_sum += 0x55;
 		}
 		++count;
 	}
-	crc_sum += count+5;
+	crc_sum += ((count+re_count+5)>>8)&0x0ff;
+	crc_sum += (count+re_count+5)&0x0ff;
 	pgp->crc = crc_sum%256;
-	pgp->data_len = (((count+5)&0x00ff)<<8) | (((count+5)&0xff00)>>8);
-	pgp->data[count] = pgp->crc;
-	pgp->length = count+9;
+	
+	pgp->data_len = (((count+re_count+5)&0x00ff)<<8) | (((count+re_count+5)&0xff00)>>8);
+	pgp->data[count+re_count] = pgp->crc;
+	pgp->length = count+re_count+9;
 	
 	return 1;
 }
@@ -279,7 +283,7 @@ unsigned char gizwits_data_process(gizwits_pack* pg_pack, gizwits_pack* pg_pack_
 				}else if(0x11==pg_pack->data[0])
 				{
 					gizwits_process_node(gizwits_s.atr_flag, gizwits_s.atr_value);   /* 处理数据节点 */
-					if((gizwits_s.atr_flag&GET_ALL_DATA_VALID) && (gizwits_s.atr_value&GET_ALL_DATA_VALID)) /* 获取所有的数据 */
+					//if((gizwits_s.atr_flag&GET_ALL_DATA_VALID) && (gizwits_s.atr_value&GET_ALL_DATA_VALID)) /* 获取所有的数据 */
 					{
 						return gizwits_reply_pack(pg_pack_send, MCU_REPLAY_MDL_DATA);
 					}
@@ -371,7 +375,7 @@ unsigned char gizwits_reply_pack(gizwits_pack* pg_pack, unsigned char command)
 			{
 				/* 传输数据 */
 				data[0] = 0x13;
-				data[1] = 0x01;
+				data[1] = 0x03;
 				data[2] = 0xFF;
 				
 				data[3] = gizwits_s.node.node[1];
@@ -408,7 +412,7 @@ unsigned char gizwits_reply_pack(gizwits_pack* pg_pack, unsigned char command)
 			unsigned short t = 0;
 			/* 传输数据 */
 			data[0] = 0x14;
-			data[1] = 0x01;
+			data[1] = 0x03;
 			data[2] = 0xFF;
 			
 			data[3] = gizwits_s.node.node[1];
