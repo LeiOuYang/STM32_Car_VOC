@@ -56,11 +56,12 @@ unsigned char gizwits_init(void)
 }
 
 /* 
-*	数据打包 
+*	数据打包 ,注意：有效数据长度不包括0xFF后面自动添加的0x55
 */
 unsigned char gizwits_pack_char(gizwits_pack* pgp, unsigned char command, const char* data, unsigned short len, unsigned short flag)
 {
 	unsigned short count = 0;
+	unsigned short data_len = 0;
 	unsigned int crc_sum = 0;
 	unsigned int re_count = 0;
 	
@@ -87,15 +88,17 @@ unsigned char gizwits_pack_char(gizwits_pack* pgp, unsigned char command, const 
 		{
 			++re_count;
 			pgp->data[count+re_count] = 0x55;
-			crc_sum += 0x55;
+			//crc_sum += 0x55;
 		}
 		++count;
 	}
-	crc_sum += ((count+re_count+5)>>8)&0x0ff;
-	crc_sum += (count+re_count+5)&0x0ff;
-	pgp->crc = crc_sum%256;
 	
-	pgp->data_len = (((count+re_count+5)&0x00ff)<<8) | (((count+re_count+5)&0xff00)>>8);
+	data_len = count + 5;
+	crc_sum += (data_len>>8)&0x0ff;
+	crc_sum += data_len&0x0ff;
+	pgp->crc = (unsigned char)(crc_sum%256);
+	
+	pgp->data_len = ((data_len&0x00ff)<<8) | ((data_len&0xff00)>>8); /* 包长不包括oxff后面的0x55 */
 	pgp->data[count+re_count] = pgp->crc;
 	pgp->length = count+re_count+9;
 	
@@ -184,6 +187,15 @@ GIZWITS_RESULT gizwits_parse_char(unsigned char c, gizwits_pack* pg_pack, gizwit
 					error = 1;
 			}else if(pg_pack->length < pg_pack->data_len-5) 			
 			{
+				if(0xFF==pg_pack->data[pg_pack->length-1] && 0x55==c)  /* 0xFF后面的0x55不进行保存 */
+				{
+					pg_pack->crc += c;
+					break;
+				}if(0xFF==pg_pack->data[pg_pack->length-1])
+				{
+					error = 1;
+					break;
+				}
 				pg_pack->data[pg_pack->length++] = c;
 				pg_pack->crc += c;
 			}else error = 1;
@@ -246,6 +258,9 @@ unsigned char gizwits_data_process(gizwits_pack* pg_pack, gizwits_pack* pg_pack_
 				gizwits_s.gizwits_exits = 1;
 				gizwits_s.rssi = pg_pack->data[0]&0x07;
 				
+				if(gizwits_is_link())
+					return 2;
+				
 				break;
 			}
 			
@@ -301,7 +316,7 @@ unsigned char gizwits_data_process(gizwits_pack* pg_pack, gizwits_pack* pg_pack_
 *	封装发送包 
 *
 */ 
-unsigned char gizwits_reply_pack(gizwits_pack* pg_pack, unsigned char command) 
+unsigned	 char gizwits_reply_pack(gizwits_pack* pg_pack, unsigned char command) 
 {
 
 	if( (void*)0 == pg_pack ) return 0;
@@ -364,7 +379,7 @@ unsigned char gizwits_reply_pack(gizwits_pack* pg_pack, unsigned char command)
 		case MCU_REPLAY_MDL_DATA:    /* 返回模块数据给通信模组 */
 		{
 			unsigned char data[60] = {0};
-			unsigned short t = 0;
+			unsigned short int t = 0;
 			
 			if(0x11==gizwits_s.action)
 			{
@@ -384,15 +399,19 @@ unsigned char gizwits_reply_pack(gizwits_pack* pg_pack, unsigned char command)
 				/* 湿度 */
 				data[5] = (unsigned char)dht11->RH; 
 
-				/* TVOC PPM */				
-				t = (unsigned short)(air->air_ppm*10);
-				data[6] = (unsigned char)((t>>8)&0x0F);
-				data[7] = (unsigned char)(t&0x0F);
+				/* TVOC PPM */
+				taskDISABLE_INTERRUPTS();				
+				t = (unsigned short int )(air->air_ppm*10);
+				taskENABLE_INTERRUPTS();
+				data[6] = (unsigned char)((t&0x0FF00)>>8);
+				data[7] = (unsigned char)(t&0x0FF);
 				
 				/* TEMP */
-				t = (unsigned short)(dht11->TEMP*10);
-				data[8] = (unsigned char)((t>>8)&0x0F);
-				data[9] = (unsigned char)(t&0x0F);
+				taskDISABLE_INTERRUPTS();
+				t = (unsigned short int )(dht11->TEMP*10);
+				taskENABLE_INTERRUPTS();
+				data[8] = (unsigned char)((t&0x0FF00)>>8);
+				data[9] = (unsigned char)(t&0x0FF);
 				
 				/* 经纬度坐标 */
 				for(t=10; t<46; ++t)
@@ -421,15 +440,19 @@ unsigned char gizwits_reply_pack(gizwits_pack* pg_pack, unsigned char command)
 			/* 湿度 */
 			data[5] = (unsigned char)dht11->RH; 
 
-			/* TVOC PPM */				
-			t = (unsigned short)(air->air_ppm*10);
-			data[6] = (unsigned char)((t>>8)&0x0F);
-			data[7] = (unsigned char)(t&0x0F);
-			
-			/* TEMP */
-			t = (unsigned short)(dht11->TEMP*10);
-			data[8] = (unsigned char)((t>>8)&0x0F);
-			data[9] = (unsigned char)(t&0x0F);
+			/* TVOC PPM */
+				taskDISABLE_INTERRUPTS();				
+				t = (unsigned short int )(air->air_ppm*10);
+				taskENABLE_INTERRUPTS();
+				data[6] = (unsigned char)((t&0x0FF00)>>8);
+				data[7] = (unsigned char)(t&0x0FF);
+				
+				/* TEMP */
+				taskDISABLE_INTERRUPTS();
+				t = (unsigned short int )(dht11->TEMP*10);
+				taskENABLE_INTERRUPTS();
+				data[8] = (unsigned char)((t&0x0FF00)>>8);
+				data[9] = (unsigned char)(t&0x0FF);
 			
 			/* 经纬度坐标 */
 			for(t=10; t<46; ++t)

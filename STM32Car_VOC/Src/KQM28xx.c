@@ -1,6 +1,9 @@
 
 #include "KQM28xx.h"
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 /* 根据输入的数据，解析数据 */
 void update(char data)
 {
@@ -37,7 +40,9 @@ void update(char data)
 				{
 					pas->init = 1;
 				}
+				taskDISABLE_INTERRUPTS();
 				pas->air_ppm = pas->air_ppm * 0.1;  /* 转化成ppm数据 */
+				taskENABLE_INTERRUPTS();
 				pas->health = 1;
 				pas->error = 0;
 				pas->error_time = 0;

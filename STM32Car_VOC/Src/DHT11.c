@@ -161,10 +161,12 @@ unsigned char DHT11_read_data(DHT11* dht)
 		if((dht->data[0]+dht->data[1]+dht->data[2]+dht->data[3])==(dht->data[4]))
 		{
 			dht->valid = 1;
+			taskDISABLE_INTERRUPTS();
 			dht->TEMP = dht->data[2];
 			dht->TEMP += (dht->data[3]&0x7F)*0.1;
 			if(dht->data[3]&0x80) dht->TEMP = -dht->TEMP;
 			dht->RH = dht->data[0];
+			taskENABLE_INTERRUPTS();
 			dht->exist = 1;
 			return 1;
 		}
