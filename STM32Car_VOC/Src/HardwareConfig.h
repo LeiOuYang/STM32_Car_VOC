@@ -57,8 +57,8 @@
 	
 	/* beep io config */
 	
-	#define set_beep() {HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);}
-	#define reset_beep() {HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);}	
+	#define set_beep() {HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);}
+	#define reset_beep() {HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET);}	
 	
 	/* end beep define */	
 	

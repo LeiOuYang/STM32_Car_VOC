@@ -21,8 +21,8 @@ void app_run(void)
 	osThreadCreate(osThread(Task50MSThread), NULL);	
 	
 	/* RGB闪烁任务 */
-	osThreadDef(RGBBlinkThread, rgb_blink_task, osPriorityIdle, 0, 128+64);
-	osThreadCreate(osThread(RGBBlinkThread), NULL);
+//	osThreadDef(RGBBlinkThread, rgb_blink_task, osPriorityIdle, 0, 128+64);
+//	osThreadCreate(osThread(RGBBlinkThread), NULL);
 	
 	/* 开启更新显示OLED显示屏幕 */
 //	osThreadDef(OledTask, update_oled_task, osPriorityIdle, 0, 128);
@@ -122,7 +122,6 @@ static void rgb_blink_task(void const* arg)
 	unsigned int step = 0;
 	
 	RGB1_Close();
-	RGB2_Close();
 	
 	while(1)
 	{
@@ -137,7 +136,6 @@ static void rgb_blink_task(void const* arg)
 		if(!sys_flag.open_rgb && 0==sys_flag.rgb_sw)
 		{
 			RGB1_Close();
-			RGB2_Close();
 			continue;
 		}
 		
@@ -147,31 +145,24 @@ static void rgb_blink_task(void const* arg)
 			{
 				case 0:
 					RGB1_Red();
-					RGB2_Red();
 					break;
 				case 1:
 					RGB1_Green();
-					RGB2_Green();
 					break;
 				case 2:
 					RGB1_Blue();
-					RGB2_Blue();
 					break;
 				case 3:
 					RGB1_Yellow();
-					RGB2_Yellow();
 					break;
 				case 4:
 					RGB1_Purple();
-					RGB2_Purple();
 					break;
 				case 5:
 					RGB1_Close();
-					RGB2_Close();
 					break;
 				default:
 					RGB1_Close();
-					RGB2_Close();
 					break;
 			}
 		}
@@ -182,27 +173,21 @@ static void rgb_blink_task(void const* arg)
 			{
 				case TVOC_PPM_00:  /* 等级0  <1.5ppm */
 					RGB1_Green();
-					RGB2_Green();
 					break;
 				case TVOC_PPM_01: /* 等级1  1.5~5.5ppm */
 					 RGB1_Blue();
-					 RGB2_Blue();
 					break;
 				case TVOC_PPM_02:  /* 等级2  5.5~10ppm */
-					RGB1_Purple();
-					RGB2_Purple();				
+					RGB1_Purple();		
 					break;
 				case TVOC_PPM_03:  /* 等级3  >10ppm */
 					RGB1_Yellow();
-					RGB2_Yellow();
 					break;
 				case TVOC_PPM_DANGER:
 //					RGB1_Red();
-//					RGB2_Red();
 					break;
 				default:
 					RGB1_Close();
-					RGB2_Close();
 					break;
 			}
 			
@@ -214,7 +199,6 @@ static void rgb_blink_task(void const* arg)
 						if(TVOC_PPM_DANGER==sys_flag.tvoc_level)
 						{
 							RGB1_Red();
-							RGB2_Red();
 						}
 						break;
 					case 1:
@@ -222,7 +206,6 @@ static void rgb_blink_task(void const* arg)
 						if(TVOC_PPM_DANGER==sys_flag.tvoc_level)
 						{
 							RGB1_Close();
-							RGB2_Close();
 						}				
 						break;				
 					default:
@@ -738,12 +721,52 @@ static void task_50ms(void const* arg)
 	{
 		osDelay(50);
 		
+		if(!init_process()) continue;
+		
 		run_led_fun();
 		beep_fun();
 		feed_dog_fun();
 	}
 }
 /* end the function */
+
+/* 系统启动过程指示, 返回1表示启动状态指示完成*/
+static unsigned char init_process(void)
+{
+	static unsigned char flag11 = 0;
+	static unsigned short int step = 0;
+	
+	if(flag11) return 1;
+	
+	HAL_IWDG_Refresh(&hiwdg); /* 先喂狗 */
+	
+	char cc = step++ / 60;
+	switch(cc)
+	{
+		case 0:
+			RGB1_Red();
+			break;
+		case 1:
+			RGB1_Blue();
+			break;
+		case 2:
+			RGB1_Green();
+			set_beep();
+			break;
+		case 3:
+			RGB1_Close();
+			reset_beep();
+			flag11 = 1;
+			break;
+		
+		default:
+			RGB1_Close();
+			reset_beep();
+			flag11 = 1;
+			break;		
+	}
+	return flag11;	
+}
 
 /* 初始化系统函数 */
 static void init_system(void)
@@ -760,8 +783,8 @@ static void init_system(void)
 	button_event_queue = xQueueCreate( 10, sizeof( Button* ));
 	
 	p_air_sensor = get_air_sensor(); 
-	dht11.GPIOx = GPIOA;
-	dht11.GPIO_Pin = GPIO_PIN_5;
+	dht11.GPIOx = GPIOB;
+	dht11.GPIO_Pin = GPIO_PIN_9;
 	DHT11_init(&dht11);
 	
 	initUsartIT(&huart1);
@@ -1340,18 +1363,15 @@ static void rgb_color(unsigned char color, unsigned char status)
 	{
 		case RGB_COLOR_COLSE:
 			RGB1_Close();
-			RGB2_Close();
 			break;
 		
 		case RGB_COLOR_RED:
 			if(status)
 			{
 				RGB1_Red();
-				RGB2_Red();
 			}else
 			{
 				RGB1_Close();
-				RGB2_Close();
 			}
 			break;
 			
@@ -1359,11 +1379,9 @@ static void rgb_color(unsigned char color, unsigned char status)
 			if(status)
 			{
 				RGB1_Green();
-				RGB2_Green();
 			}else
 			{
 				RGB1_Close();
-				RGB2_Close();
 			}
 			break;
 			
@@ -1371,11 +1389,9 @@ static void rgb_color(unsigned char color, unsigned char status)
 			if(status)
 			{
 				RGB1_Blue();
-				RGB2_Blue();
 			}else
 			{
 				RGB1_Close();
-				RGB2_Close();
 			}
 			break;
 			
@@ -1383,22 +1399,18 @@ static void rgb_color(unsigned char color, unsigned char status)
 			if(status)
 			{
 				RGB1_Yellow();
-				RGB2_Yellow();
 			}else
 			{
 				RGB1_Close();
-				RGB2_Close();
 			}
 			break;
 		case RGB_COLOR_PURPLE:
 			if(status)
 			{
 				RGB1_Purple();
-				RGB2_Purple();
 			}else
 			{
 				RGB1_Close();
-				RGB2_Close();
 			}
 			break;
 		default: break;

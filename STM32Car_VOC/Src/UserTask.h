@@ -134,6 +134,8 @@
 	static void rgb_color(unsigned char color, unsigned char status);
 	static void gizwits_set_error(gizwits_status* const pgs);
 	
+	static unsigned char init_process(void);
+	
 	extern IWDG_HandleTypeDef hiwdg;
 	extern UART_HandleTypeDef huart1;
 	extern UART_HandleTypeDef huart2;

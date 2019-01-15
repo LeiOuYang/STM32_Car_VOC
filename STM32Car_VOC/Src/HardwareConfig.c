@@ -6,7 +6,7 @@ static Button button_array[2];
 void init_system_button(void)
 {
 	init_button( &button_array[0], BUTTON_ID_1 );
-	init_button( &button_array[1], BUTTON_ID_2 );
+	//init_button( &button_array[1], BUTTON_ID_2 );
 }
 
 GPIO_PinState read_button_pin_satus(ButtonId id)
@@ -20,7 +20,7 @@ GPIO_PinState read_button_pin_satus(ButtonId id)
 		}
 		case BUTTON_ID_2:
 		{
-			return HAL_GPIO_ReadPin(BUTTON2_CLASS, BUTTON2_PIN);
+			//return HAL_GPIO_ReadPin(BUTTON2_CLASS, BUTTON2_PIN);
 			//break;
 		}
 		case BUTTON_ID_3:

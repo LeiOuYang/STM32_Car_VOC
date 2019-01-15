@@ -4,7 +4,7 @@
   * @brief   Interrupt Service Routines.
   ******************************************************************************
   *
-  * COPYRIGHT(c) 2018 STMicroelectronics
+  * COPYRIGHT(c) 2019 STMicroelectronics
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -193,26 +193,6 @@ void EXTI0_IRQHandler(void)
 	}
 	portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
   /* USER CODE END EXTI0_IRQn 1 */
-}
-
-/**
-* @brief This function handles EXTI line1 interrupt.
-*/
-void EXTI1_IRQHandler(void)
-{
-  /* USER CODE BEGIN EXTI1_IRQn 0 */
-	Button *bt;
-	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-  /* USER CODE END EXTI1_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_1);
-  /* USER CODE BEGIN EXTI1_IRQn 1 */
-	if(BUTTON_STATUS_NONE!=button_exti_callback(BUTTON_ID_2))
-	{
-		bt = get_button_by_id(BUTTON_ID_2);
-		xQueueSendToBackFromISR( button_event_queue, &bt, &xHigherPriorityTaskWoken );
-	}
-	portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
-  /* USER CODE END EXTI1_IRQn 1 */
 }
 
 /**
