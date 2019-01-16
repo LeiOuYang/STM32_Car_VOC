@@ -62,6 +62,11 @@
 	
 	/* end beep define */	
 	
+	/* 电池充电引脚反馈 */
+	#define read_charging() 	HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_7) /* 低电平表示充电中 */
+	#define read_charged() 		HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4) /* 高电平表示充电完成 */
+	/* end */
+	
 	/* button define and config */
 	#define BUTTON1_CLASS GPIOA
 	#define BUTTON2_CLASS	GPIOA

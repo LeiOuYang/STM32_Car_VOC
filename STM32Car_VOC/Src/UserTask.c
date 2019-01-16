@@ -5,7 +5,7 @@
 #define AWESOME_DEBUG_TVOC_ENABLE 0
 #define AWESOME_DEBUG_GIZWITS_ENBALE 0
 
-static system_flag sys_flag = { 0,0,0,(TVOC_PPM_STATUS)0,0,1,1,0,0,0,0};
+static system_flag sys_flag = { 0,0,0,(TVOC_PPM_STATUS)0,0,1,1,0,0,0,0,0};
 xQueueHandle button_event_queue;
 extern const unsigned char chinese16_16[][32];
 static DHT11 dht11;
@@ -21,8 +21,8 @@ void app_run(void)
 	osThreadCreate(osThread(Task50MSThread), NULL);	
 	
 	/* RGB闪烁任务 */
-//	osThreadDef(RGBBlinkThread, rgb_blink_task, osPriorityIdle, 0, 128+64);
-//	osThreadCreate(osThread(RGBBlinkThread), NULL);
+	osThreadDef(RGBBlinkThread, rgb_blink_task, osPriorityIdle, 0, 128);
+	osThreadCreate(osThread(RGBBlinkThread), NULL);
 	
 	/* 开启更新显示OLED显示屏幕 */
 //	osThreadDef(OledTask, update_oled_task, osPriorityIdle, 0, 128);
@@ -127,92 +127,112 @@ static void rgb_blink_task(void const* arg)
 	{
 		osDelay(20);  /* 50hz */
 		
+		if(!sys_flag.init_sucess)
+		{
+			continue;
+		}
+		
+		/* 充电状态指示优先 */
+		if( GPIO_PIN_RESET==read_charging() )
+		{
+			RGB1_Red();
+			continue;
+		}
+		
+		if( GPIO_PIN_RESET==read_charged() )
+		{
+			RGB1_Green();
+			continue;
+		}
+		
+		RGB1_Close();
+		
 		/* 设备控制有效 则返回  */
-		if(gizwits_control_rgb(20, gizwits_dev_control.rgb_color, gizwits_dev_control.rgb_speed))
-		{
-			continue;
-		}
+//		if(gizwits_control_rgb(20, gizwits_dev_control.rgb_color, gizwits_dev_control.rgb_speed))
+//		{
+//			continue;
+//		}
+//		
+//		if(!sys_flag.open_rgb && 0==sys_flag.rgb_sw)
+//		{
+//			RGB1_Close();
+//			continue;
+//		}
 		
-		if(!sys_flag.open_rgb && 0==sys_flag.rgb_sw)
-		{
-			RGB1_Close();
-			continue;
-		}
-		
-		if(sys_flag.rgb_sw)
-		{
-			switch(sys_flag.rgb_list)
-			{
-				case 0:
-					RGB1_Red();
-					break;
-				case 1:
-					RGB1_Green();
-					break;
-				case 2:
-					RGB1_Blue();
-					break;
-				case 3:
-					RGB1_Yellow();
-					break;
-				case 4:
-					RGB1_Purple();
-					break;
-				case 5:
-					RGB1_Close();
-					break;
-				default:
-					RGB1_Close();
-					break;
-			}
-		}
-		
-		if(p_air_sensor->init && p_air_sensor->health && 0==sys_flag.rgb_sw)
-		{
-			switch(sys_flag.tvoc_level)
-			{
-				case TVOC_PPM_00:  /* 等级0  <1.5ppm */
-					RGB1_Green();
-					break;
-				case TVOC_PPM_01: /* 等级1  1.5~5.5ppm */
-					 RGB1_Blue();
-					break;
-				case TVOC_PPM_02:  /* 等级2  5.5~10ppm */
-					RGB1_Purple();		
-					break;
-				case TVOC_PPM_03:  /* 等级3  >10ppm */
-					RGB1_Yellow();
-					break;
-				case TVOC_PPM_DANGER:
+//		if(sys_flag.rgb_sw)
+//		{
+//			switch(sys_flag.rgb_list)
+//			{
+//				case 0:
 //					RGB1_Red();
-					break;
-				default:
-					RGB1_Close();
-					break;
-			}
+//					break;
+//				case 1:
+//					RGB1_Green();
+//					break;
+//				case 2:
+//					RGB1_Blue();
+//					break;
+//				case 3:
+//					RGB1_Yellow();
+//					break;
+//				case 4:
+//					RGB1_Purple();
+//					break;
+//				case 5:
+//					RGB1_Close();
+//					break;
+//				default:
+//					RGB1_Close();
+//					break;
+//			}
+//		}
+		
+//		if(p_air_sensor->init && p_air_sensor->health && 0==sys_flag.rgb_sw)
+//		{
+//			switch(sys_flag.tvoc_level)
+//			{
+//				case TVOC_PPM_00:  /* 等级0  <1.5ppm */
+//					RGB1_Green();
+//					break;
+//				case TVOC_PPM_01: /* 等级1  1.5~5.5ppm */
+//					 RGB1_Blue();
+//					break;
+//				case TVOC_PPM_02:  /* 等级2  5.5~10ppm */
+//					RGB1_Purple();		
+//					break;
+//				case TVOC_PPM_03:  /* 等级3  >10ppm */
+//					RGB1_Yellow();
+//					break;
+//				case TVOC_PPM_DANGER:
+////					RGB1_Red();
+//					break;
+//				default:
+//					RGB1_Close();
+//					break;
+//			}
 			
-			step++;
-			switch(step)
-			{
-					case 0:
-					case 2:
-						if(TVOC_PPM_DANGER==sys_flag.tvoc_level)
-						{
-							RGB1_Red();
-						}
-						break;
-					case 1:
-					case 3:
-						if(TVOC_PPM_DANGER==sys_flag.tvoc_level)
-						{
-							RGB1_Close();
-						}				
-						break;				
-					default:
-						step = 0;
-						break;
-			}		
-		}
+//			step++;
+//			switch(step)
+//			{
+//					case 0:
+//					case 2:
+//						if(TVOC_PPM_DANGER==sys_flag.tvoc_level)
+//						{
+//							RGB1_Red();
+//						}
+//						break;
+//					case 1:
+//					case 3:
+//						if(TVOC_PPM_DANGER==sys_flag.tvoc_level)
+//						{
+//							RGB1_Close();
+//						}				
+//						break;				
+//					default:
+//						step = 0;
+//						break;
+//			}		
+//		}
 	}
 }
 /* function code end */
@@ -733,14 +753,13 @@ static void task_50ms(void const* arg)
 /* 系统启动过程指示, 返回1表示启动状态指示完成*/
 static unsigned char init_process(void)
 {
-	static unsigned char flag11 = 0;
 	static unsigned short int step = 0;
 	
-	if(flag11) return 1;
+	if(sys_flag.init_sucess) return 1;
 	
 	HAL_IWDG_Refresh(&hiwdg); /* 先喂狗 */
 	
-	char cc = step++ / 60;
+	char cc = step++ / 30;
 	switch(cc)
 	{
 		case 0:
@@ -751,21 +770,21 @@ static unsigned char init_process(void)
 			break;
 		case 2:
 			RGB1_Green();
-			set_beep();
+			//set_beep();
 			break;
 		case 3:
 			RGB1_Close();
 			reset_beep();
-			flag11 = 1;
+			sys_flag.init_sucess = 1;
 			break;
 		
 		default:
 			RGB1_Close();
 			reset_beep();
-			flag11 = 1;
+			sys_flag.init_sucess = 1;
 			break;		
 	}
-	return flag11;	
+	return sys_flag.init_sucess;	
 }
 
 /* 初始化系统函数 */

@@ -75,6 +75,7 @@
 		unsigned char open_beep:1;
 		unsigned char button_click:1;
 		unsigned char rgb_sw: 1;/* 0-默认状态显示   1-可按键切换*/
+		unsigned char init_sucess: 1;
 	  unsigned char rgb_list; /* 0-red, 1-green, 2-blue, 3-yellow, 4-Purple, 5-close */
 		
 		unsigned char sensor_healthy;  /* 传感器错误标志 枚举SENSOR_ERROR_STATUS */
